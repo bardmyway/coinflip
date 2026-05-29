@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fair Coin">
+<meta name="theme-color" content="#060910">
+<title>Fair Coin</title>
+<style>
+  :root {
+    --bg:#03050a;
+    --ink:#f5eedd;
+    --muted:#a8a090;
+    --faint:#6e6656;
+    --line:rgba(245,238,221,.12);
+    --panel:rgba(9,12,19,.74);
+    --panel-edge:rgba(245,238,221,.06);
+    --gold:#f4c95e;
+    --gold-deep:#7a5416;
+    --silver:#e8eef6;
+    --teal:#5ed8c2;
+    --rose:#ff8a98;
+    --violet:#b0a0ff;
+    --mars:#ff9a6b;
+    --sky-grad:linear-gradient(160deg,#03050a 0%,#080d16 50%,#05090f 100%);
+    --star-op:.55;
+    --glow-op:1;
+  }
+  :root[data-theme="light"]{
+    --bg:#efe9da;
+    --ink:#2a241a;
+    --muted:#6a6151;
+    --faint:#9c9381;
+    --line:rgba(40,34,22,.16);
+    --panel:rgba(255,253,247,.82);
+    --panel-edge:rgba(40,34,22,.05);
+    --gold:#a9760d;
+    --gold-deep:#c9a24a;
+    --silver:#586475;
+    --teal:#0f9485;
+    --rose:#d24d65;
+    --violet:#6a59cf;
+    --mars:#cf6a3a;
+    --sky-grad:linear-gradient(160deg,#f4efe2 0%,#ebe4d4 55%,#f1ebdd 100%);
+    --star-op:0;
+    --glow-op:.4;
+  }
+  /* Light-mode text fixes (originals are hardcoded near-white) */
+  :root[data-theme="light"] .sigline,
+  :root[data-theme="light"] .phase-copy,
+  :root[data-theme="light"] .reading-body p,
+  :root[data-theme="light"] .you-reading,
+  :root[data-theme="light"] .you-echo,
+  :root[data-theme="light"] .you-prompt,
+  :root[data-theme="light"] .hex-judge,
+  :root[data-theme="light"] .hex-change-txt p,
+  :root[data-theme="light"] .hex-lens,
+  :root[data-theme="light"] .apod-desc,
+  :root[data-theme="light"] .reading-synth{color:#4a4234}
+  :root[data-theme="light"] .hex-lens .moon-lens{color:#39546f}
+  :root[data-theme="light"] .hex-change{background:linear-gradient(150deg,rgba(210,77,101,.08),transparent 55%),rgba(255,253,247,.55)}
+  :root[data-theme="light"] .apod-card{background:var(--panel)}
+  :root[data-theme="light"] .reading-personal{color:#5a49c0}
+
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{
+    min-height:100vh;min-height:100dvh;
+    color:var(--ink);
+    font-family:Georgia,"Times New Roman",serif;
+    background:var(--sky-grad);
+    overflow-x:hidden;
+    transition:background .5s ease,color .5s ease;
+  }
+  /* Text is selectable/copyable; interactive + draggable controls are not */
+  .coin,.coin-stage,.flip-btn,.cast-btn,.you-btn,.you-clear,.tag,.moon-stage,.sky-chart,button{
+    user-select:none;-webkit-user-select:none;
+  }
+
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;opacity:var(--glow-op);
+    transition:opacity .5s ease;
+    background:
+      radial-gradient(ellipse at 10% 15%,rgba(94,216,194,.14),transparent 32%),
+      radial-gradient(ellipse at 88% 20%,rgba(244,201,94,.10),transparent 28%),
+      radial-gradient(ellipse at 75% 85%,rgba(176,160,255,.08),transparent 30%);
+  }
+
+  @keyframes twinkle{
+    0%,100%{opacity:.35}
+    50%{opacity:.85}
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;opacity:var(--star-op);
+    transition:opacity .5s ease;
+    background-image:
+      radial-gradient(1px 1px at 18% 22%,#fff,transparent),
+      radial-gradient(1px 1px at 65% 8%,rgba(122,167,255,.9),transparent),
+      radial-gradient(1px 1px at 42% 92%,rgba(244,201,94,.8),transparent),
+      radial-gradient(1px 1px at 88% 68%,#fff,transparent),
+      radial-gradient(1px 1px at 5% 78%,rgba(94,216,194,.85),transparent),
+      radial-gradient(1px 1px at 72% 44%,#fff,transparent),
+      radial-gradient(1px 1px at 33% 56%,rgba(176,160,255,.7),transparent),
+      radial-gradient(1px 1px at 95% 32%,#fff,transparent);
+    background-size:240px 240px,320px 320px,280px 280px,360px 360px,200px 200px,300px 300px,260px 260px,340px 340px;
+    animation:twinkle 4s ease-in-out infinite alternate;
+  }
+
+  button,.mono,.eyebrow,.label,.tag,.proof summary{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  }
+
+  .app{
+    position:relative;z-index:1;
+    width:min(1200px,100%);
+    min-height:100vh;min-height:100dvh;
+    margin:0 auto;padding:26px 20px 22px;
+    display:flex;flex-direction:column;justify-content:center;gap:18px;
+  }
+
+  .topbar{
+    display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:0 4px;
+  }
+  .eyebrow{
+    color:var(--teal);font-size:11px;letter-spacing:.3em;text-transform:uppercase;margin-bottom:6px;
+  }
+  h1{font-size:clamp(44px,7.5vw,84px);line-height:.9;letter-spacing:-.01em}
+
+  .tag-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+  .tag{
+    height:36px;display:inline-flex;align-items:center;
+    border:1px solid var(--line);border-radius:999px;
+    background:rgba(128,128,128,.08);color:var(--muted);
+    padding:0 14px;font-size:11px;letter-spacing:.08em;white-space:nowrap;
+    transition:background .5s,color .5s,border-color .5s;
+  }
+  .theme-toggle{
+    height:36px;padding:0 13px;border-radius:999px;cursor:pointer;flex:none;
+    border:1px solid var(--line);background:rgba(128,128,128,.08);color:var(--ink);
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+    font-size:11px;letter-spacing:.08em;line-height:1;white-space:nowrap;
+    transition:background .25s,transform .12s,border-color .5s,color .5s;
+  }
+  .theme-toggle .ti{font-size:14px;line-height:1}
+  .theme-toggle:hover{background:rgba(128,128,128,.18)}
+  .theme-toggle:active{transform:scale(.95)}
+  .theme-toggle:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
+
+  .layout{
+    display:grid;
+    grid-template-columns:minmax(320px,1fr) minmax(380px,1.15fr);
+    gap:18px;align-items:start;
+  }
+
+  .panel{
+    border:1px solid var(--line);border-radius:28px;
+    background:linear-gradient(180deg,var(--panel-edge),transparent),var(--panel);
+    box-shadow:0 34px 80px rgba(0,0,0,.38);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    transition:background .5s ease,border-color .5s ease,box-shadow .5s ease;
+  }
+  :root[data-theme="light"] .panel{box-shadow:0 24px 60px rgba(80,66,40,.14)}
+
+  /* === Flip Panel === */
+  .flip-panel{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:20px;text-align:center;padding:32px 22px 26px;
+  }
+
+  .coin-stage{
+    width:min(340px,75vw);aspect-ratio:1;
+    display:grid;place-items:center;perspective:1400px;
+  }
+
+  @keyframes coinArc{
+    0%{transform:translateY(0) scale(1)}
+    25%{transform:translateY(-36px) scale(1.06)}
+    55%{transform:translateY(-18px) scale(1.04)}
+    80%{transform:translateY(4px) scale(.98)}
+    100%{transform:translateY(0) scale(1)}
+  }
+  .coin-wrap{
+    width:100%;height:100%;display:grid;place-items:center;
+  }
+  .coin-wrap.arc{animation:coinArc 1.5s cubic-bezier(.22,.68,.36,1) forwards}
+
+  .coin{
+    width:92%;height:92%;border:0;padding:0;border-radius:50%;
+    background:transparent;cursor:pointer;position:relative;
+    transform-style:preserve-3d;
+    transition:transform 1.5s cubic-bezier(.14,.82,.18,1);
+  }
+  .coin:focus-visible,.flip-btn:focus-visible{outline:2px solid var(--teal);outline-offset:6px}
+
+  .face{
+    position:absolute;inset:0;border-radius:50%;overflow:hidden;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    box-shadow:
+      inset 0 20px 40px rgba(255,255,255,.18),
+      inset 0 -24px 50px rgba(0,0,0,.5),
+      0 36px 72px rgba(0,0,0,.6);
+  }
+  .tails{transform:rotateY(180deg)}
+  .coin-svg{width:100%;height:100%;display:block}
+
+  .coin-edge{
+    position:absolute;inset:3%;border-radius:50%;
+    background:linear-gradient(to bottom,#c9a23a 0%,#6e4512 50%,#c9a23a 100%);
+    transform:translateZ(-3px);
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  }
+
+  /* === Coin V2 — Celestial (vertical toss) === */
+  [hidden]{display:none!important}
+  @keyframes tossArc{
+    0%{transform:translateY(0) scale(1)}
+    30%{transform:translateY(-90px) scale(1.06)}
+    65%{transform:translateY(-24px) scale(1.03)}
+    100%{transform:translateY(0) scale(1)}
+  }
+  .coin-wrap2{width:100%;height:100%;display:grid;place-items:center;position:relative}
+  .coin-wrap2.toss{animation:tossArc 1.4s cubic-bezier(.2,.66,.32,1) forwards}
+  .coin2{
+    width:92%;height:92%;border:0;padding:0;border-radius:50%;background:transparent;cursor:pointer;
+    position:relative;transform-style:preserve-3d;transition:transform 1.4s cubic-bezier(.16,.8,.2,1);
+  }
+  .coin2:focus-visible{outline:2px solid var(--teal);outline-offset:6px}
+  .face2{
+    position:absolute;inset:0;border-radius:50%;overflow:hidden;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    box-shadow:inset 0 18px 38px rgba(255,255,255,.16),inset 0 -22px 48px rgba(0,0,0,.5),0 34px 70px rgba(0,0,0,.6);
+  }
+  .moon2{transform:rotateX(180deg)}
+  .coin2-edge{
+    position:absolute;inset:3%;border-radius:50%;
+    background:linear-gradient(to right,#3a3320,#9a8c5a 50%,#3a3320);
+    transform:translateZ(-3px);backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  }
+  .coin2-glow{position:absolute;width:96%;height:96%;border-radius:50%;pointer-events:none;opacity:0}
+  .coin2-glow.burst{animation:coinBurst .75s ease-out}
+  @keyframes coinBurst{
+    0%{opacity:.9;box-shadow:0 0 40px 6px rgba(244,201,94,.5)}
+    100%{opacity:0;box-shadow:0 0 72px 26px rgba(244,201,94,0)}
+  }
+  .coin-toggle{
+    margin-top:2px;height:32px;padding:0 14px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--line);background:rgba(128,128,128,.08);color:var(--muted);
+    display:inline-flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    transition:background .25s,color .25s,transform .12s,border-color .5s;
+  }
+  .coin-toggle .ti{font-size:13px}
+  .coin-toggle:hover{background:rgba(128,128,128,.16);color:var(--ink)}
+  .coin-toggle:active{transform:scale(.96)}
+  .coin-toggle:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
+
+  .result{
+    width:100%;min-height:110px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    opacity:0;transform:translateY(6px);
+    transition:opacity .3s,transform .3s;
+  }
+  .result.show{opacity:1;transform:translateY(0)}
+
+  .outcome{
+    font-size:clamp(40px,6vw,60px);line-height:1;font-weight:700;letter-spacing:.04em;
+  }
+  .sigline{
+    color:#d4ccba;font-size:15px;line-height:1.3;max-width:380px;
+  }
+
+  .flip-btn{
+    min-width:200px;min-height:56px;border:0;border-radius:999px;cursor:pointer;
+    color:#0a0f0e;
+    background:linear-gradient(135deg,var(--gold),#ffe4a0 48%,var(--teal));
+    box-shadow:0 16px 40px rgba(244,201,94,.2),inset 0 1px 0 rgba(255,255,255,.6);
+    font-size:15px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;
+    transition:transform .12s,opacity .18s,filter .18s;
+  }
+  .flip-btn:active{transform:scale(.96)}
+  .flip-btn:disabled{opacity:.5;filter:saturate(.65)}
+
+  .tally{color:#8a8272;font-size:12px;letter-spacing:.14em}
+
+  .proof{width:min(420px,100%);color:var(--faint);font-size:11px;letter-spacing:.05em;line-height:1.5}
+  .proof summary{cursor:pointer;color:#8a8272;letter-spacing:.12em;text-transform:uppercase}
+  .proof-body{margin-top:10px;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:12px}
+  .proof-plain{color:var(--muted);font-size:12px;line-height:1.55;letter-spacing:0}
+  .proof-plain code{font-family:ui-monospace,monospace;font-size:11px;color:var(--rose)}
+  .proof-plain b{color:var(--ink)}
+  /* Byte visual: 8 bits, last one decides */
+  .byte-viz{display:flex;gap:5px;justify-content:center}
+  .bit-cell{
+    width:30px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    font-family:ui-monospace,monospace;font-size:15px;font-weight:700;
+    border:1px solid var(--line);color:var(--faint);background:rgba(128,128,128,.05);
+    transition:all .25s;
+  }
+  .bit-cell.on{color:var(--ink);background:rgba(128,128,128,.14);border-color:var(--line)}
+  .bit-cell.decider{position:relative;border-width:2px}
+  .bit-cell.decider.heads{border-color:var(--gold);color:var(--gold);box-shadow:0 0 14px rgba(244,201,94,.35)}
+  .bit-cell.decider.tails{border-color:var(--silver);color:var(--silver);box-shadow:0 0 14px rgba(232,238,246,.3)}
+  .bit-cell.decider::after{
+    content:"decides";position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);
+    font-size:8px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;white-space:nowrap;
+  }
+  .byte-caption{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.04em;min-height:14px;margin-top:6px}
+  .byte-caption b.h{color:var(--gold)}.byte-caption b.t{color:var(--silver)}
+  /* Balance bar */
+  .balance{display:flex;flex-direction:column;gap:6px}
+  .balance-bar{position:relative;height:10px;border-radius:999px;overflow:hidden;background:rgba(128,128,128,.16)}
+  .balance-fill{position:absolute;left:0;top:0;height:100%;width:0;background:linear-gradient(90deg,var(--gold-deep),var(--gold));transition:width .5s cubic-bezier(.2,.8,.3,1)}
+  .balance-bar i.balance-mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--ink);opacity:.5}
+  .balance-legend{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.06em}
+  .balance-legend .bh{color:var(--gold)}.balance-legend .bt{color:var(--silver)}
+  .proof-foot{color:var(--faint);font-size:10px;line-height:1.5;letter-spacing:.04em}
+  .proof-foot b{color:var(--muted)}
+
+  /* === Sky Panel === */
+  .sky-panel{padding:24px;display:flex;flex-direction:column;gap:16px}
+
+  .moon-area{display:flex;flex-direction:column;align-items:center;gap:16px}
+  .moon-stage{
+    width:min(420px,80vw);aspect-ratio:1;
+    perspective:900px;
+    display:grid;place-items:center;
+    cursor:grab;touch-action:none;
+  }
+  .moon-stage:active{cursor:grabbing}
+  .moon-img{
+    width:100%;height:100%;display:block;
+    border-radius:50%;
+    object-fit:cover;
+    filter:drop-shadow(0 0 50px rgba(200,210,230,.14)) drop-shadow(0 0 120px rgba(160,180,210,.06));
+    transition:opacity .6s, transform .15s ease-out, filter .3s ease-out;
+    transform:rotateY(0deg) rotateX(0deg);
+  }
+  .moon-img.loading{opacity:.3}
+  .moon-img.idle{transition:opacity .6s, transform .8s cubic-bezier(.2,.8,.3,1), filter .8s ease-out}
+
+  .moon-info{text-align:center}
+  .label{display:block;color:var(--faint);font-size:10px;letter-spacing:.24em;text-transform:uppercase;margin-bottom:6px}
+  .phase-name{font-size:clamp(26px,3.5vw,38px);line-height:1;margin-bottom:8px}
+  .phase-stat{color:var(--teal);font-size:15px;letter-spacing:.06em;margin-bottom:6px}
+  .phase-copy{color:#c8c0ae;font-size:14px;line-height:1.4;max-width:340px;margin:0 auto}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent)}
+
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+  .metric strong{display:block;font-size:clamp(22px,3vw,30px);line-height:1;margin-top:4px}
+  .metric:nth-child(1) strong{color:var(--silver)}
+  .metric:nth-child(2) strong{color:var(--rose)}
+  .metric:nth-child(3) strong{color:var(--teal)}
+
+  /* Tonight card */
+  .tonight{
+    padding:18px;border:1px solid var(--line);border-radius:22px;
+    background:linear-gradient(155deg,rgba(94,216,194,.06),transparent 45%),rgba(6,9,16,.3);
+  }
+  .tonight-title{display:block;font-size:24px;line-height:1;margin-top:4px;margin-bottom:10px}
+  .tonight-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .tonight-cue{font-size:13px;line-height:1.4}
+  .tonight-cue b{display:block;color:var(--muted);font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px}
+  .tonight-cue p{color:#d4ccba}
+
+  /* APOD + cosmic weather */
+  .apod-card{
+    padding:14px;border:1px solid var(--line);border-radius:20px;
+    background:rgba(6,9,16,.28);
+  }
+  .apod-img{width:100%;border-radius:14px;margin-bottom:10px;aspect-ratio:16/10;max-height:440px;object-fit:cover}
+  .apod-title{font-size:16px;line-height:1.2;margin-bottom:6px}
+  .apod-desc{color:#b8b0a0;font-size:12px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  /* Reading */
+  .reading-section{
+    padding:20px;border:1px solid var(--line);border-radius:22px;
+    background:linear-gradient(160deg,rgba(94,216,194,.04),transparent 40%),
+      linear-gradient(340deg,rgba(244,201,94,.03),transparent 45%),rgba(6,9,16,.3);
+  }
+  .reading-title{font-size:clamp(20px,3vw,26px);line-height:1;margin:4px 0 10px}
+  .reading-body p{color:#ccc4b4;font-size:13px;line-height:1.5;margin-bottom:8px}
+  .reading-body p:last-child{margin-bottom:0}
+  .reading-synth{color:#e8e0d0;font-size:13px;font-style:italic;border-top:1px solid var(--line);padding-top:8px;white-space:pre-line}
+
+  /* Sky chart */
+  .sky-chart-section{text-align:center}
+  @keyframes skyPulse{
+    0%,100%{transform:scale(1);filter:brightness(1)}
+    50%{transform:scale(1.008);filter:brightness(1.08)}
+  }
+  .sky-chart{
+    width:min(320px,70vw);height:min(320px,70vw);display:block;margin:8px auto 0;
+    animation:skyPulse 6s ease-in-out infinite;
+  }
+  .sky-chart-note{color:#b0a898;font-size:11px;margin-top:8px;line-height:1.4}
+  .cosmic-weather{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .weather-item{
+    padding:12px 14px;border:1px solid var(--line);border-radius:16px;
+    background:rgba(6,9,16,.25);
+  }
+  .weather-item strong{display:block;font-size:17px;margin-top:3px;line-height:1.1}
+  .weather-sub{color:var(--faint);font-size:10px;letter-spacing:.1em;margin-top:4px}
+
+  /* Daily reading */
+  .you-reading{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);color:#d4ccba;font-size:14px;line-height:1.45;font-style:italic}
+
+  /* You section (birth date) */
+  .you-section{
+    padding:16px;border:1px solid var(--line);border-radius:20px;
+    background:linear-gradient(140deg,rgba(176,160,255,.05),transparent 50%),rgba(6,9,16,.28);
+  }
+  .you-prompt{color:#b0a898;font-size:13px;margin-top:4px;line-height:1.4}
+  .you-form{display:flex;gap:8px;margin-top:10px}
+  .you-form input[type="date"]{
+    flex:1;min-height:40px;padding:6px 12px;border-radius:12px;
+    border:1px solid var(--line);background:rgba(245,238,221,.05);
+    color:var(--ink);font-family:inherit;font-size:14px;
+  }
+  .you-btn{
+    min-height:40px;padding:0 18px;border:0;border-radius:12px;cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),var(--teal));
+    color:#0a0e0c;font-weight:700;font-size:11px;letter-spacing:.16em;
+  }
+  .you-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .you-grid strong{display:block;font-size:17px;margin-top:2px}
+  .you-echo{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);color:#c8c0ae;font-size:13px;line-height:1.45}
+  .you-clear{
+    margin-top:10px;padding:8px 14px;border:0;border-radius:10px;cursor:pointer;
+    background:rgba(245,238,221,.06);color:var(--muted);font-size:10px;letter-spacing:.14em;
+  }
+
+  /* === Context section (moon / sky / you) below the oracles === */
+  .context-section{
+    width:min(1200px,100%);margin:0 auto;
+    display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);
+    gap:18px;align-items:start;
+  }
+  .context-col{display:flex;flex-direction:column;gap:16px;padding:22px}
+
+  /* Condensed reading */
+  .reading-essence{color:var(--ink);opacity:.86;font-size:14px;line-height:1.5;margin:2px 0 13px;max-width:560px}
+  .planet-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin:0 0 13px}
+  .planet-row{display:flex;gap:9px;align-items:baseline;font-size:13.5px;line-height:1.4}
+  .planet-row .glyph{font-size:16px;flex:none;width:18px;text-align:center;line-height:1}
+  .planet-row .pname{color:var(--ink);font-weight:bold;flex:none}
+  .planet-row .ptone{color:var(--muted)}
+  .p-sun{color:var(--gold)}.p-moon{color:var(--silver)}.p-merc{color:var(--teal)}.p-venus{color:var(--rose)}.p-mars{color:var(--mars)}
+  .rx-badge{
+    display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;
+    background:rgba(255,138,152,.16);color:var(--rose);
+    font-family:ui-monospace,monospace;font-size:9px;letter-spacing:.1em;vertical-align:middle;
+  }
+  .reading-takeaway{
+    color:var(--ink);font-size:14px;line-height:1.55;font-style:italic;
+    border-top:1px solid var(--line);padding-top:12px;max-width:560px;
+  }
+  .reading-personal{color:var(--violet);font-size:13px;line-height:1.55;margin-top:9px;max-width:560px}
+
+  /* === I Ching Oracle === */
+  .iching-panel{
+    width:min(1200px,100%);margin:0 auto;
+    padding:32px 28px;display:flex;flex-direction:column;gap:22px;
+  }
+  .iching-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+  .iching-title{font-size:clamp(32px,5vw,52px);line-height:.92;letter-spacing:-.01em}
+  .iching-intro{color:#b0a898;font-size:13px;line-height:1.55;max-width:440px}
+  .iching-stage{display:flex;flex-direction:column;align-items:center;gap:18px}
+  .hex-build{
+    display:flex;flex-direction:column-reverse;gap:11px;
+    width:180px;min-height:151px;justify-content:center;
+  }
+  .hex-line{
+    height:15px;display:flex;gap:18px;
+    opacity:0;transform:translateY(10px) scale(.96);
+    transition:opacity .45s ease,transform .45s cubic-bezier(.2,.8,.3,1);
+  }
+  .hex-line.show{opacity:1;transform:none}
+  .hex-line .bar{flex:1;border-radius:5px}
+  .hex-line.yang .bar{background:linear-gradient(90deg,#6e4512,var(--gold) 50%,#6e4512);box-shadow:0 2px 10px rgba(244,201,94,.18)}
+  .hex-line.yin .bar{background:linear-gradient(90deg,#465162,var(--silver) 50%,#465162);box-shadow:0 2px 10px rgba(232,238,246,.1)}
+  .hex-line.moving{position:relative}
+  .hex-line.moving .bar{
+    background:linear-gradient(90deg,#7a2f3a,var(--rose) 50%,#7a2f3a);
+    box-shadow:0 0 16px rgba(255,138,152,.5);
+    animation:movePulse 2.2s ease-in-out infinite;
+  }
+  @keyframes movePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.4)}}
+  .hex-line.moving::after{
+    content:"";position:absolute;right:-24px;top:50%;width:7px;height:7px;
+    border-radius:50%;background:var(--rose);transform:translateY(-50%);
+    box-shadow:0 0 10px rgba(255,138,152,.7);
+  }
+  .cast-btn{
+    min-width:240px;min-height:56px;border:0;border-radius:999px;cursor:pointer;color:#0a0a12;
+    background:linear-gradient(135deg,var(--violet),#dccdff 48%,var(--gold));
+    box-shadow:0 16px 40px rgba(176,160,255,.22),inset 0 1px 0 rgba(255,255,255,.6);
+    font-size:14px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+    transition:transform .12s,opacity .18s,filter .18s;
+  }
+  .cast-btn:active{transform:scale(.96)}
+  .cast-btn:disabled{opacity:.5;filter:saturate(.6)}
+  .cast-btn:focus-visible{outline:2px solid var(--violet);outline-offset:6px}
+  .cast-status{color:var(--violet);font-size:11px;letter-spacing:.16em;min-height:14px}
+  .iching-reading{border-top:1px solid var(--line);padding-top:22px;display:flex;flex-direction:column;gap:14px}
+  .iching-reading[hidden]{display:none}
+  .hex-name-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px 14px}
+  .hex-num{font-family:ui-monospace,monospace;color:var(--faint);font-size:12px;letter-spacing:.12em}
+  .hex-cn{font-size:32px;line-height:1;color:var(--ink)}
+  .hex-en{font-size:clamp(20px,3vw,28px);line-height:1}
+  .hex-tri{color:var(--teal);font-size:12px;letter-spacing:.1em}
+  .hex-judge{color:#d8d0be;font-size:15px;line-height:1.6;max-width:680px}
+  .hex-change{
+    padding:16px 18px;border:1px solid var(--line);border-radius:18px;
+    background:linear-gradient(150deg,rgba(255,138,152,.07),transparent 55%),rgba(6,9,16,.32);
+    display:flex;flex-wrap:wrap;align-items:center;gap:20px;
+  }
+  .hex-change .mini{display:flex;flex-direction:column-reverse;gap:5px;width:66px;flex:none}
+  .hex-change .mini .hex-line{height:7px;gap:8px;opacity:1;transform:none}
+  .hex-change .mini .hex-line.moving::after{display:none}
+  .hex-change-txt{flex:1;min-width:220px}
+  .hex-change-txt b{color:var(--rose);font-size:10px;letter-spacing:.16em;text-transform:uppercase;display:block;margin-bottom:6px;font-family:ui-monospace,monospace}
+  .hex-change-txt .fname{font-size:17px;margin-bottom:5px}
+  .hex-change-txt p{color:#c8c0ae;font-size:13px;line-height:1.5}
+  .hex-judge+.label,.hex-line-pos+.hex-change,.iching-reading .label{margin-top:4px}
+  .hex-line-pos{color:#c8c0ae;font-size:12.5px;line-height:1.6;margin:2px 0 4px}
+  .hex-line-pos b{color:var(--rose)}
+  .hex-synth{color:var(--ink);font-size:14px;line-height:1.6;border-top:1px solid var(--line);padding-top:13px}
+  .hex-synth b{color:var(--teal)}
+  .hex-advice{
+    color:var(--ink);font-size:14.5px;line-height:1.65;
+    border:1px solid var(--line);border-radius:16px;padding:14px 16px;
+    background:linear-gradient(150deg,rgba(94,216,194,.08),transparent 55%),rgba(6,9,16,.3);
+  }
+  :root[data-theme="light"] .hex-advice{background:linear-gradient(150deg,rgba(15,148,133,.08),transparent 55%),rgba(255,253,247,.5)}
+  .hex-birth-hint{color:var(--faint);font-size:10px;letter-spacing:.08em;margin-top:-2px}
+  .hex-howto{font-size:11px}
+  .hex-howto summary{cursor:pointer;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;font-family:ui-monospace,monospace;font-size:10px}
+  .hex-howto p{color:var(--muted);font-size:12px;line-height:1.6;margin-top:9px}
+  .hex-howto p b{color:var(--ink)}
+  :root[data-theme="light"] .hex-line-pos{color:#4a4234}
+  .hex-lens{color:#c8c0ae;font-size:13px;line-height:1.55;border-top:1px solid var(--line);padding-top:14px}
+  .hex-lens .moon-lens{color:#bcd0e6}
+  .hex-lens .birth-lens{color:#d2c6ec;margin-top:7px;display:block}
+
+  .footer-note{padding:0 6px;color:#6e6656;font-size:11px;line-height:1.5;letter-spacing:.04em}
+
+  @media(max-width:960px){
+    .layout{grid-template-columns:1fr}
+    .flip-panel,.sky-panel{min-height:auto}
+    .context-section{grid-template-columns:1fr}
+  }
+  @media(max-width:640px){
+    .app{padding:16px 12px 20px;gap:12px}
+    .topbar{flex-direction:column;align-items:flex-start}
+    .tag-row{justify-content:flex-start}
+    .panel{border-radius:22px;padding:18px 14px}
+    .coin-stage{width:min(280px,78vw)}
+    .oracle-body{grid-template-columns:64px 1fr}
+    .hex{font-size:56px}
+    .moon-area canvas{width:min(260px,75vw);height:min(260px,75vw)}
+    .iching-panel{padding:22px 16px}
+    .hex-line.moving::after{right:-18px;width:6px;height:6px}
+  }
+</style>
+<script>
+  // Apply saved theme before first paint to avoid a flash
+  try{var t=localStorage.getItem("fc.theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}
+</script>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">Secure Randomness</div>
+      <h1>Fair Coin</h1>
+    </div>
+    <div class="tag-row">
+      <span class="tag" id="zodiacTag">Sun loading</span>
+      <span class="tag" id="dayTag">Day loading</span>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark theme" title="Toggle light / dark"></button>
+    </div>
+  </header>
+
+  <section class="layout">
+    <section class="flip-panel panel" aria-label="Fair coin flip">
+      <div class="coin-stage" id="coinStage1">
+        <div class="coin-wrap" id="coinWrap">
+          <button class="coin" id="coin" type="button" aria-label="Flip coin">
+            <span class="coin-edge" aria-hidden="true"></span>
+            <span class="face heads" aria-hidden="true">
+              <svg class="coin-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="gH" cx="30%" cy="24%" r="84%">
+                    <stop offset="0%" stop-color="#fffae2"/>
+                    <stop offset="12%" stop-color="#f8d978"/>
+                    <stop offset="32%" stop-color="#e8b030"/>
+                    <stop offset="52%" stop-color="#c88a1e"/>
+                    <stop offset="72%" stop-color="#96641a"/>
+                    <stop offset="100%" stop-color="#3a2206"/>
+                  </radialGradient>
+                  <radialGradient id="specH" cx="28%" cy="22%" r="36%">
+                    <stop offset="0%" stop-color="rgba(255,255,240,.38)"/>
+                    <stop offset="100%" stop-color="rgba(255,255,240,0)"/>
+                  </radialGradient>
+                  <linearGradient id="shH" x1="20" y1="16" x2="220" y2="224" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="rgba(255,255,255,.32)"/>
+                    <stop offset="42%" stop-color="rgba(255,255,255,0)"/>
+                    <stop offset="100%" stop-color="rgba(0,0,0,.28)"/>
+                  </linearGradient>
+                  <filter id="metalH" x="0" y="0" width="100%" height="100%">
+                    <feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" seed="4" result="n"/>
+                    <feColorMatrix in="n" type="saturate" values="0" result="g"/>
+                    <feBlend in="SourceGraphic" in2="g" mode="soft-light"/>
+                  </filter>
+                  <filter id="raisedH" x="-4%" y="-4%" width="108%" height="108%">
+                    <feDropShadow dx="-.7" dy="-.7" stdDeviation=".3" flood-color="#fffae0" flood-opacity=".5"/>
+                    <feDropShadow dx=".9" dy=".9" stdDeviation=".5" flood-color="#1a0e00" flood-opacity=".6"/>
+                  </filter>
+                  <path id="arcH" d="M 34 120 A 86 86 0 0 1 206 120"/>
+                </defs>
+                <circle cx="120" cy="120" r="119" fill="url(#gH)" filter="url(#metalH)"/>
+                <circle cx="120" cy="120" r="119" fill="url(#shH)"/>
+                <circle cx="120" cy="120" r="119" fill="url(#specH)"/>
+                <circle cx="120" cy="120" r="117" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="1"/>
+                <circle cx="120" cy="120" r="113" fill="none" stroke="rgba(255,248,220,.14)" stroke-width="1.5"/>
+                <circle cx="120" cy="120" r="110" fill="none" stroke="#3a2206" stroke-width="2" stroke-dasharray=".5 3.8" stroke-linecap="round" opacity=".55"/>
+                <circle cx="120" cy="120" r="97" fill="none" stroke="rgba(58,34,6,.3)" stroke-width=".7"/>
+                <g filter="url(#raisedH)">
+                  <text font-family="Georgia,serif" font-size="8.5" font-weight="700" fill="#4a2c09" letter-spacing="2.5">
+                    <textPath href="#arcH" startOffset="50%" text-anchor="middle">IN GOD WE TRUST</textPath>
+                  </text>
+                  <text x="120" y="87" text-anchor="middle" font-family="Georgia,serif" font-size="7" fill="#4a2c09" letter-spacing="4">★ ★ ★ ★ ★ ★ ★</text>
+                  <text x="120" y="126" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="26" font-weight="700" fill="#4a2c09" letter-spacing="5">LIBERTY</text>
+                  <text x="120" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="700" fill="#4a2c09" letter-spacing="4">2026</text>
+                  <text x="120" y="181" text-anchor="middle" font-family="Georgia,serif" font-size="6.5" fill="#4a2c09" letter-spacing="2.5">E PLURIBUS UNUM</text>
+                </g>
+              </svg>
+            </span>
+            <span class="face tails" aria-hidden="true">
+              <svg class="coin-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="gT" cx="30%" cy="24%" r="84%">
+                    <stop offset="0%" stop-color="#ffffff"/>
+                    <stop offset="12%" stop-color="#e8eef6"/>
+                    <stop offset="32%" stop-color="#c0cdd8"/>
+                    <stop offset="52%" stop-color="#8a9aac"/>
+                    <stop offset="72%" stop-color="#5a6878"/>
+                    <stop offset="100%" stop-color="#242e38"/>
+                  </radialGradient>
+                  <radialGradient id="specT" cx="28%" cy="22%" r="36%">
+                    <stop offset="0%" stop-color="rgba(255,255,255,.36)"/>
+                    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+                  </radialGradient>
+                  <linearGradient id="shT" x1="20" y1="16" x2="220" y2="224" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="rgba(255,255,255,.35)"/>
+                    <stop offset="42%" stop-color="rgba(255,255,255,0)"/>
+                    <stop offset="100%" stop-color="rgba(0,0,0,.3)"/>
+                  </linearGradient>
+                  <filter id="metalT" x="0" y="0" width="100%" height="100%">
+                    <feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" seed="7" result="n"/>
+                    <feColorMatrix in="n" type="saturate" values="0" result="g"/>
+                    <feBlend in="SourceGraphic" in2="g" mode="soft-light"/>
+                  </filter>
+                  <filter id="raisedT" x="-4%" y="-4%" width="108%" height="108%">
+                    <feDropShadow dx="-.7" dy="-.7" stdDeviation=".3" flood-color="#ffffff" flood-opacity=".4"/>
+                    <feDropShadow dx=".9" dy=".9" stdDeviation=".5" flood-color="#0a1018" flood-opacity=".55"/>
+                  </filter>
+                  <path id="arcT" d="M 30 118 A 90 90 0 0 1 210 118"/>
+                </defs>
+                <circle cx="120" cy="120" r="119" fill="url(#gT)" filter="url(#metalT)"/>
+                <circle cx="120" cy="120" r="119" fill="url(#shT)"/>
+                <circle cx="120" cy="120" r="119" fill="url(#specT)"/>
+                <circle cx="120" cy="120" r="117" fill="none" stroke="rgba(0,0,0,.24)" stroke-width="1"/>
+                <circle cx="120" cy="120" r="113" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5"/>
+                <circle cx="120" cy="120" r="110" fill="none" stroke="#24303c" stroke-width="2" stroke-dasharray=".5 3.8" stroke-linecap="round" opacity=".52"/>
+                <circle cx="120" cy="120" r="97" fill="none" stroke="rgba(36,48,60,.28)" stroke-width=".7"/>
+                <g filter="url(#raisedT)">
+                  <text font-family="Georgia,serif" font-size="8" font-weight="700" fill="#2a3644" letter-spacing="1.8">
+                    <textPath href="#arcT" startOffset="50%" text-anchor="middle">UNITED STATES OF AMERICA</textPath>
+                  </text>
+                  <text x="120" y="84" text-anchor="middle" font-family="Georgia,serif" font-size="6" font-weight="700" fill="#2a3644" letter-spacing="2">E · PLURIBUS · UNUM</text>
+                  <g fill="#2a3644" font-family="Georgia,serif" font-size="8" text-anchor="middle">
+                    <text x="120" y="101">★</text>
+                    <text x="136" y="104">★</text>
+                    <text x="148" y="113">★</text>
+                    <text x="152" y="127">★</text>
+                    <text x="148" y="141">★</text>
+                    <text x="136" y="150">★</text>
+                    <text x="120" y="153">★</text>
+                    <text x="104" y="150">★</text>
+                    <text x="92" y="141">★</text>
+                    <text x="88" y="127">★</text>
+                    <text x="92" y="113">★</text>
+                    <text x="104" y="104">★</text>
+                    <text x="120" y="127" font-size="10">★</text>
+                  </g>
+                  <text x="120" y="178" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="14" font-weight="700" fill="#2a3644" letter-spacing="3.5">QUARTER</text>
+                  <text x="120" y="197" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="11" font-weight="700" fill="#2a3644" letter-spacing="4">DOLLAR</text>
+                </g>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="coin-stage" id="coinStage2" hidden>
+        <div class="coin-wrap2" id="coinWrap2">
+          <span class="coin2-glow" id="coin2Glow" aria-hidden="true"></span>
+          <button class="coin2" id="coin2" type="button" aria-label="Flip coin">
+            <span class="coin2-edge" aria-hidden="true"></span>
+            <span class="face2 sun2" aria-hidden="true">
+              <svg class="coin-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="sunBody" cx="32%" cy="26%" r="84%"><stop offset="0%" stop-color="#fff7d6"/><stop offset="30%" stop-color="#f6cd62"/><stop offset="62%" stop-color="#d59421"/><stop offset="100%" stop-color="#6f400b"/></radialGradient>
+                  <radialGradient id="sunSpec" cx="30%" cy="24%" r="42%"><stop offset="0%" stop-color="rgba(255,255,255,.5)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+                </defs>
+                <circle cx="120" cy="120" r="119" fill="url(#sunBody)"/>
+                <circle cx="120" cy="120" r="119" fill="url(#sunSpec)"/>
+                <circle cx="120" cy="120" r="113" fill="none" stroke="#5a3a0a" stroke-width="2" opacity=".45"/>
+                <g stroke="#5a3a0a" stroke-width="4" stroke-linecap="round" opacity=".55">
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(0 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(30 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(60 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(90 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(120 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(150 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(180 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(210 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(240 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(270 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(300 120 120)"/>
+                  <line x1="120" y1="40" x2="120" y2="62" transform="rotate(330 120 120)"/>
+                </g>
+                <circle cx="120" cy="120" r="34" fill="none" stroke="#5a3a0a" stroke-width="4" opacity=".6"/>
+                <circle cx="120" cy="120" r="7" fill="#5a3a0a" opacity=".55"/>
+                <text x="120" y="206" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="700" fill="#5a3a0a" letter-spacing="4" opacity=".7">SUN</text>
+              </svg>
+            </span>
+            <span class="face2 moon2" aria-hidden="true">
+              <svg class="coin-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="moonBody" cx="34%" cy="28%" r="84%"><stop offset="0%" stop-color="#ffffff"/><stop offset="30%" stop-color="#dde6f0"/><stop offset="64%" stop-color="#97a4b6"/><stop offset="100%" stop-color="#2c3542"/></radialGradient>
+                  <clipPath id="moonClip"><circle cx="120" cy="120" r="119"/></clipPath>
+                </defs>
+                <g clip-path="url(#moonClip)">
+                  <circle cx="120" cy="120" r="119" fill="url(#moonBody)"/>
+                  <circle cx="178" cy="100" r="122" fill="#1c232e" opacity=".32"/>
+                  <circle cx="86" cy="96" r="15" fill="#7e8b9c" opacity=".45"/>
+                  <circle cx="138" cy="150" r="20" fill="#7e8b9c" opacity=".38"/>
+                  <circle cx="104" cy="150" r="9" fill="#7e8b9c" opacity=".4"/>
+                  <circle cx="150" cy="92" r="7" fill="#7e8b9c" opacity=".35"/>
+                </g>
+                <circle cx="120" cy="120" r="113" fill="none" stroke="#2a3442" stroke-width="2" opacity=".4"/>
+                <g fill="#eef3fa" opacity=".9"><circle cx="60" cy="60" r="1.6"/><circle cx="186" cy="74" r="1.4"/><circle cx="74" cy="184" r="1.3"/></g>
+                <text x="120" y="206" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#2a3442" letter-spacing="4" opacity=".75">MOON</text>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="result" id="result">
+        <strong class="outcome" id="outcome"></strong>
+        <p class="sigline" id="sigline"></p>
+      </div>
+
+      <button class="flip-btn" id="flipBtn" type="button">Flip</button>
+      <div class="tally mono" id="tally">Heads 0 / Tails 0</div>
+      <button class="coin-toggle mono" id="coinToggle" type="button" aria-label="Switch coin design"></button>
+
+      <details class="proof">
+        <summary>Is this flip really fair?</summary>
+        <div class="proof-body" id="proofBody">
+          <p class="proof-plain">Your device's hardware randomness — the same source that secures bank logins and encryption keys — picks a number from <b>0&ndash;255</b>. Only the <b>last bit</b> decides the flip. No <code>Math.random()</code>.</p>
+
+          <div class="byte-viz" id="byteViz"></div>
+          <p class="byte-caption mono" id="byteCaption">Flip the coin to see your draw.</p>
+
+          <div class="balance">
+            <div class="balance-bar"><span class="balance-fill" id="balanceFill"></span><i class="balance-mid"></i></div>
+            <div class="balance-legend mono">
+              <span class="bh" id="balH">Heads 0 · 0%</span>
+              <span class="bt" id="balT">0% · 0 Tails</span>
+            </div>
+          </div>
+
+          <p class="proof-foot mono">Exactly <b>50.000%</b> each — 128 of 256 byte values are even. Small runs swing wildly; over many flips the bar settles to the middle.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="iching-panel panel" aria-label="I Ching oracle">
+      <div class="iching-head">
+        <div>
+          <span class="label">The Oracle &middot; 易經</span>
+          <h2 class="iching-title">I Ching</h2>
+        </div>
+        <p class="iching-intro">Hold one question in mind. The coin is thrown three times for each of six lines &mdash; the same crypto-fair entropy, read the way the oracle has been cast for three thousand years. Moving lines mark where your situation is already changing.</p>
+      </div>
+      <div class="iching-stage">
+        <div class="hex-build" id="hexBuild" aria-label="Hexagram lines"></div>
+        <button class="cast-btn" id="castBtn" type="button">Cast the Hexagram</button>
+        <div class="cast-status mono" id="castStatus" role="status" aria-live="polite"></div>
+      </div>
+      <div class="iching-reading" id="ichingReading" hidden></div>
+    </section>
+  </section>
+
+  <section class="context-section" aria-label="Tonight's sky and your layer">
+    <section class="context-col panel">
+      <section class="moon-area">
+        <div class="moon-stage" id="moonStage">
+          <img id="moonImg" class="moon-img loading" alt="Current moon phase from NASA SVS" width="730" height="730" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+        </div>
+        <div class="moon-info">
+          <span class="label">Current Phase</span>
+          <strong class="phase-name" id="phaseName">Loading</strong>
+          <div class="phase-stat mono" id="phaseStat"></div>
+          <p class="phase-copy" id="phaseCopy"></p>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="reading-section" aria-label="Tonight's reading">
+        <span class="label">Tonight's Reading</span>
+        <h2 class="reading-title" id="readingTitle">--</h2>
+        <p class="reading-essence" id="readingEssence"></p>
+        <ul class="planet-list" id="planetList"></ul>
+        <p class="reading-takeaway" id="readingTakeaway"></p>
+        <p class="reading-personal" id="readingPersonal"></p>
+      </section>
+    </section>
+
+    <section class="context-col panel">
+      <section class="sky-chart-section">
+        <span class="label">Sky Tonight</span>
+        <canvas id="skyChart" width="600" height="600" class="sky-chart"></canvas>
+        <p class="sky-chart-note mono" id="skyChartNote"></p>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="you-section" id="youSection">
+        <div id="youEmpty">
+          <span class="label">Your Layer</span>
+          <p class="you-prompt">Add your birth date for a personal reading across the moon, the sky, and the I Ching. Stored only in this browser.</p>
+          <form id="birthForm" class="you-form">
+            <input type="date" id="birthInput" required aria-label="Birth date">
+            <button type="submit" class="you-btn">Bind</button>
+          </form>
+        </div>
+        <div id="youFilled" hidden>
+          <span class="label">Your Reading</span>
+          <div class="you-grid">
+            <div><span class="label">Sun Sign</span><strong id="natalSign">--</strong></div>
+            <div><span class="label">Birth Moon</span><strong id="natalMoon">--</strong></div>
+            <div><span class="label">Life Path</span><strong id="lifePath">--</strong></div>
+            <div><span class="label">Days Alive</span><strong id="daysAlive">--</strong></div>
+          </div>
+          <p class="you-echo" id="youEcho">--</p>
+          <p class="you-reading" id="youReading"></p>
+          <button type="button" class="you-clear mono" id="youClear">Clear my data</button>
+        </div>
+      </section>
+    </section>
+  </section>
+
+  <section class="apod-card" id="apodCard" hidden style="width:min(1200px,100%);margin:0 auto;position:relative;z-index:1">
+    <span class="label">Daily Sky &middot; NASA APOD</span>
+    <img class="apod-img" id="apodImg" alt="" loading="lazy">
+    <strong class="apod-title" id="apodTitle"></strong>
+    <p class="apod-desc" id="apodDesc"></p>
+  </section>
+
+  <p class="footer-note mono">The flip is crypto-fair (crypto.getRandomValues). The I Ching is cast the same way &mdash; three coins per line, pure entropy, no seeding. Moon phase computed from NASA reference epoch. Planetary positions are 2026 ephemeris estimates. Birth data stays in your browser. Astrology and the I Ching are symbolic context, not prediction.</p>
+</main>
+
+<script>
+if(!window.crypto||!crypto.getRandomValues){
+  alert("Secure randomness unavailable.");
+  throw new Error("crypto.getRandomValues unavailable");
+}
+
+var SYNODIC=29.530588853;
+var NEW_MOON_EPOCH=Date.UTC(2000,0,6,18,14);
+var H=0,T=0,busy=false,rot=0,lastMoonInfo=null;
+
+function $(id){return document.getElementById(id)}
+var coin=$("coin"),coinWrap=$("coinWrap"),flipBtn=$("flipBtn"),
+    result=$("result"),outcome=$("outcome"),sigline=$("sigline"),
+    tally=$("tally"),proofBody=$("proofBody"),
+    moonImg=$("moonImg"),phaseName=$("phaseName"),phaseStat=$("phaseStat"),phaseCopy=$("phaseCopy"),
+    zodiacTag=$("zodiacTag"),dayTag=$("dayTag"),
+    youEmpty=$("youEmpty"),youFilled=$("youFilled"),
+    birthForm=$("birthForm"),birthInput=$("birthInput"),youClear=$("youClear"),
+    natalSign=$("natalSign"),natalMoon=$("natalMoon"),lifePathEl=$("lifePath"),
+    daysAliveEl=$("daysAlive"),youEcho=$("youEcho"),youReading=$("youReading");
+
+// === Data ===
+var ZODIAC=[
+  {name:"Capricorn",el:"Earth",tone:"structure, patience, useful ambition"},
+  {name:"Aquarius",el:"Air",tone:"distance, originality, systems thinking"},
+  {name:"Pisces",el:"Water",tone:"imagination, softness, permeability"},
+  {name:"Aries",el:"Fire",tone:"initiative, heat, clean action"},
+  {name:"Taurus",el:"Earth",tone:"body sense, steadiness, appetite"},
+  {name:"Gemini",el:"Air",tone:"curiosity, language, comparison"},
+  {name:"Cancer",el:"Water",tone:"memory, protection, home signal"},
+  {name:"Leo",el:"Fire",tone:"visibility, play, courage"},
+  {name:"Virgo",el:"Earth",tone:"editing, craft, practical care"},
+  {name:"Libra",el:"Air",tone:"balance, taste, social calibration"},
+  {name:"Scorpio",el:"Water",tone:"depth, privacy, transformation"},
+  {name:"Sagittarius",el:"Fire",tone:"meaning, travel, wider truth"}
+];
+var CUTS={1:[20,1],2:[19,2],3:[21,3],4:[20,4],5:[21,5],6:[21,6],7:[23,7],8:[23,8],9:[23,9],10:[23,10],11:[22,11],12:[22,0]};
+var PREV=[0,0,1,2,3,4,5,6,7,8,9,10,11];
+function zodiacFor(d){
+  var m=d.getMonth()+1,dy=d.getDate(),c=CUTS[m];
+  return ZODIAC[dy>=c[0]?c[1]:PREV[m]];
+}
+
+var DAYS=[["Sunday","Sun"],["Monday","Moon"],["Tuesday","Mars"],["Wednesday","Mercury"],["Thursday","Jupiter"],["Friday","Venus"],["Saturday","Saturn"]];
+
+var PHASES=[
+  {title:"Quiet Reset",
+   reading:"Darkest sky. Name the question before you rush toward an answer. Plant one seed, not five."},
+  {title:"First Signal",
+   reading:"First crescent after sunset. Energy is stirring but fragile. Move gently - don't announce what you're building yet."},
+  {title:"Clean Choice",
+   reading:"Half the Moon lit - the decision point. Stop weighing. Pick the path you can test."},
+  {title:"Refinement",
+   reading:"Almost full. Editing phase, not starting phase. The trap is over-polishing. It doesn't need to be perfect to become full."},
+  {title:"High Tide",
+   reading:"Full illumination. Don't confuse intensity with truth. Sleep on big decisions. Let brightness reveal, not compel."},
+  {title:"Integration",
+   reading:"Light begins to shrink. What worked? What was noise? Keep the signal, release the rest."},
+  {title:"Edit Mode",
+   reading:"Waning half. Where First Quarter committed, this one cuts. Remove one complication."},
+  {title:"Soft Landing",
+   reading:"Last crescent before darkness. Recovery beats more input. Let the cycle close cleanly."}
+];
+
+
+// === Moon ===
+function moonInfo(date){
+  var days=(date.getTime()-NEW_MOON_EPOCH)/86400000;
+  var age=((days%SYNODIC)+SYNODIC)%SYNODIC;
+  var frac=age/SYNODIC;
+  var idx=Math.floor(frac*8+.5)%8;
+  var ill=(1-Math.cos(2*Math.PI*frac))/2;
+  return{age:age,frac:frac,idx:idx,phase:["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"][idx],ill:ill};
+}
+
+// NASA SVS Moon Phase frame loader (2025 hourly frames)
+var SVS_BASE="https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005415/frames/730x730_1x1_30p/moon.";
+function svsFrame(targetAge){
+  var jan1=Date.UTC(2025,0,1);
+  var best=1,bestD=99;
+  for(var h=0;h<8760;h+=2){
+    var days=(jan1+h*3600000-NEW_MOON_EPOCH)/86400000;
+    var age=((days%SYNODIC)+SYNODIC)%SYNODIC;
+    var diff=Math.abs(age-targetAge);
+    if(diff>SYNODIC/2)diff=SYNODIC-diff;
+    if(diff<bestD){bestD=diff;best=h+1;}
+  }
+  return String(best).padStart(4,"0");
+}
+function loadMoonImage(info){
+  lastMoonInfo=info;
+  var frame=svsFrame(info.age);
+  var url=SVS_BASE+frame+".jpg";
+  moonImg.classList.add("loading");
+  moonImg.onload=function(){moonImg.classList.remove("loading");};
+  moonImg.onerror=function(){moonImg.classList.remove("loading");};
+  moonImg.src=url;
+}
+
+
+
+// === Audio ===
+var AC=window.AudioContext||window.webkitAudioContext;
+var actx=AC?new AC():null;
+var noiseBuf=null;
+function getNoise(){
+  if(noiseBuf)return noiseBuf;
+  var n=Math.floor((actx.sampleRate||44100)*.3);
+  noiseBuf=actx.createBuffer(1,n,actx.sampleRate||44100);
+  var ch=noiseBuf.getChannelData(0);
+  for(var i=0;i<n;i++)ch[i]=Math.random()*2-1;
+  return noiseBuf;
+}
+function clink(){
+  if(!actx)return;
+  if(actx.state==="suspended")actx.resume();
+  var t=actx.currentTime;
+  var master=actx.createGain();master.gain.value=.14;master.connect(actx.destination);
+  function tink(s,v,dur){
+    var src=actx.createBufferSource();src.buffer=getNoise();
+    var bp=actx.createBiquadFilter();bp.type="bandpass";bp.frequency.value=5400;bp.Q.value=.9;
+    var ng=actx.createGain();ng.gain.setValueAtTime(v*.45,s);
+    ng.gain.exponentialRampToValueAtTime(.0001,s+.035);
+    src.connect(bp);bp.connect(ng);ng.connect(master);src.start(s);src.stop(s+.04);
+    [4200,5300,6700,7800].forEach(function(f,i){
+      var o=actx.createOscillator(),g=actx.createGain();
+      o.type="sine";o.frequency.value=f;o.detune.value=(Math.random()-.5)*6;
+      var pv=v*[.44,.3,.2,.11][i];
+      g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(pv,s+.003);
+      g.gain.exponentialRampToValueAtTime(.0001,s+dur*[1,.8,.58,.4][i]);
+      o.connect(g);g.connect(master);o.start(s);o.stop(s+dur+.04);
+    });
+  }
+  tink(t,.28,.36);tink(t+.09,.13,.24);tink(t+.15,.06,.16);
+}
+
+// === Render sky ===
+function renderSky(){
+  var now=new Date();
+  var moon=moonInfo(now);
+  var zod=zodiacFor(now);
+  var day=DAYS[now.getDay()];
+  var ph=PHASES[moon.idx];
+
+  zodiacTag.textContent=zod.name+" / "+zod.el;
+  dayTag.textContent=day[0]+" / "+day[1];
+  phaseName.textContent=moon.phase;
+  phaseStat.textContent=Math.round(moon.ill*100)+"% illuminated  -  Day "+Math.round(moon.age);
+  phaseCopy.textContent="Sun season: "+zod.name+" - "+zod.tone+".";
+  loadMoonImage(moon);
+  return{moon:moon,zod:zod,ph:ph};
+}
+
+// === Planetary positions (2026 hardcoded) ===
+var MERC_RX=[
+  [Date.UTC(2026,2,2),Date.UTC(2026,2,25),"Pisces"],
+  [Date.UTC(2026,5,29),Date.UTC(2026,6,22),"Cancer"],
+  [Date.UTC(2026,9,24),Date.UTC(2026,10,13),"Scorpio"]
+];
+var MERC_SIGNS=[
+  [1,15,"Sagittarius"],[1,31,"Capricorn"],[2,18,"Aquarius"],[3,1,"Pisces"],
+  [3,26,"Aries"],[4,11,"Taurus"],[4,29,"Gemini"],[6,3,"Cancer"],
+  [7,23,"Leo"],[8,9,"Virgo"],[8,27,"Libra"],[9,12,"Scorpio"],
+  [11,14,"Sagittarius"],[12,3,"Capricorn"]
+];
+var VENUS_SIGNS=[
+  [1,1,"Aquarius"],[1,27,"Pisces"],[2,21,"Aries"],[3,18,"Taurus"],
+  [4,13,"Gemini"],[5,10,"Cancer"],[6,7,"Leo"],[7,6,"Virgo"],
+  [8,6,"Libra"],[9,6,"Scorpio"],[10,8,"Sagittarius"],[11,6,"Capricorn"],
+  [12,3,"Aquarius"]
+];
+var MERC_FEELS={
+  Aries:"Thoughts are fast and direct. Say it now, edit later.",
+  Taurus:"Thinking slows down. Practical ideas stick. Trust the obvious answer.",
+  Gemini:"Mind is quick, curious, scattered. Good for brainstorming, risky for commitments.",
+  Cancer:"Communication gets emotional. Say what you mean, not what protects you.",
+  Leo:"Ideas want an audience. Speak with confidence, but listen too.",
+  Virgo:"Analytical and precise. Good for editing, planning, fixing.",
+  Libra:"Weighing every side. Diplomacy is high, decisiveness is low.",
+  Scorpio:"Conversations go deep fast. Hidden information surfaces.",
+  Sagittarius:"Big ideas, blunt delivery. Aim for truth, watch the tone.",
+  Capricorn:"Structured thinking. Plans get serious. Good for commitments.",
+  Aquarius:"Unconventional ideas land. Question the default.",
+  Pisces:"Intuitive but foggy. Trust the feeling, write it down."
+};
+var VENUS_FEELS={
+  Aries:"Desire is impulsive and direct. Chase what excites you.",
+  Taurus:"Comfort and sensory pleasure. Slow down and enjoy what you have.",
+  Gemini:"Flirty, curious, easily bored. Variety over depth right now.",
+  Cancer:"Nurturing energy. Home, family, emotional safety matter most.",
+  Leo:"Love wants to be seen. Generosity is high, so is the need for recognition.",
+  Virgo:"Love through acts of service. Quiet devotion over grand gestures.",
+  Libra:"Harmony, beauty, partnership. Everything looks better in pairs.",
+  Scorpio:"Intensity in connection. All or nothing. Vulnerability is the door.",
+  Sagittarius:"Freedom in love. Adventure over routine. Don't cling.",
+  Capricorn:"Serious about who gets your time. Loyalty over novelty.",
+  Aquarius:"Friendship-first energy. Unconventional connections thrive.",
+  Pisces:"Romantic, dreamy, porous. Beautiful but watch the boundaries."
+};
+function planetSign(table,now){
+  var m=now.getMonth()+1,d=now.getDate();
+  var sign=table[0][2];
+  for(var i=0;i<table.length;i++){
+    if(m>table[i][0]||(m===table[i][0]&&d>=table[i][1]))sign=table[i][2];
+  }
+  return sign;
+}
+function mercuryStatus(){
+  var now=Date.now();
+  for(var i=0;i<MERC_RX.length;i++){
+    if(now>=MERC_RX[i][0]&&now<=MERC_RX[i][1]){
+      var left=Math.ceil((MERC_RX[i][1]-now)/86400000);
+      return{rx:true,sign:MERC_RX[i][2],info:left+"d left in retrograde"};
+    }
+  }
+  for(var i=0;i<MERC_RX.length;i++){
+    if(now<MERC_RX[i][0]){
+      var until=Math.ceil((MERC_RX[i][0]-now)/86400000);
+      return{rx:false,sign:planetSign(MERC_SIGNS,new Date()),info:"next retrograde in "+until+"d"};
+    }
+  }
+  return{rx:false,sign:planetSign(MERC_SIGNS,new Date()),info:"no more retrogrades this year"};
+}
+// Mars positions 2026 (approximate)
+var MARS_SIGNS=[[1,1,"Leo"],[3,1,"Virgo"],[5,1,"Libra"],[7,1,"Scorpio"],[9,1,"Sagittarius"],[10,15,"Capricorn"],[12,1,"Aquarius"]];
+var MARS_FEELS={
+  Leo:"Energy wants recognition. Act boldly but watch the ego.",
+  Virgo:"Drive turns toward precision. Fix, improve, serve.",
+  Libra:"Action seeks fairness. Assertiveness is diplomatic but can stall.",
+  Scorpio:"Intensity underneath. Strategic, focused, relentless.",
+  Sagittarius:"Energy expands outward. Movement and truth-seeking.",
+  Capricorn:"Disciplined ambition. Cold focus. Results over feelings.",
+  Aquarius:"Energy goes toward systems and causes. Rebellious drive."
+};
+var MOON_SIGN_FEELS={
+  Aries:"restless, impulsive, ready to act before thinking",
+  Taurus:"grounded, comfort-seeking, resistant to change",
+  Gemini:"chatty, curious, scattered across too many tabs",
+  Cancer:"tender, protective, emotionally porous",
+  Leo:"warm, expressive, needing to be seen",
+  Virgo:"analytical, helpful, quietly critical",
+  Libra:"seeking balance, diplomatic, indecisive",
+  Scorpio:"intense, private, digging beneath the surface",
+  Sagittarius:"restless for meaning, optimistic, blunt",
+  Capricorn:"serious, structured, emotionally reserved",
+  Aquarius:"detached, original, more in the head than the heart",
+  Pisces:"dreamy, empathetic, boundaries dissolving"
+};
+var ELEMENTS={Aries:"Fire",Taurus:"Earth",Gemini:"Air",Cancer:"Water",Leo:"Fire",Virgo:"Earth",Libra:"Air",Scorpio:"Water",Sagittarius:"Fire",Capricorn:"Earth",Aquarius:"Air",Pisces:"Water"};
+
+// Aspect computation
+function signDist(a,b){
+  var ai=SIGN_ORDER.indexOf(a),bi=SIGN_ORDER.indexOf(b);
+  return((bi-ai)+12)%12;
+}
+function aspectName(dist){
+  if(dist===0)return"conjunction";
+  if(dist===2||dist===10)return"sextile";
+  if(dist===3||dist===9)return"square";
+  if(dist===4||dist===8)return"trine";
+  if(dist===6)return"opposition";
+  return null;
+}
+function aspectFeel(asp,planet){
+  if(asp==="conjunction")return planet+" aligns with your wiring. Amplified signal - trust the resonance.";
+  if(asp==="trine")return"Easy flow. "+planet+" supports your natural mode tonight.";
+  if(asp==="sextile")return"Gentle opportunity. "+planet+" opens a door if you notice it.";
+  if(asp==="square")return"Friction from "+planet+". What you feel tonight challenges your default. Growth lives in the tension.";
+  if(asp==="opposition")return"Full polarity with "+planet+". What surfaces may feel like your opposite. Look at it before reacting.";
+  return"";
+}
+function elementCompat(e1,e2){
+  if(e1===e2)return"same element - amplifies";
+  var compat={Fire:"Air",Air:"Fire",Earth:"Water",Water:"Earth"};
+  if(compat[e1]===e2)return"compatible elements - flows naturally";
+  return"challenging elements - requires conscious bridging";
+}
+
+var PHASE_ESSENCE=[
+  "a dark sky for seeding intentions",
+  "fragile new momentum",
+  "a commit-or-wait decision point",
+  "refine before the peak",
+  "full, bright, and intense",
+  "release what's already done",
+  "cut and clear",
+  "rest and close the cycle"
+];
+var ASPECT_SHORT={
+  conjunction:"amplified — trust the resonance",
+  trine:"easy flow, it supports you",
+  sextile:"a quiet opportunity if you notice it",
+  square:"friction that pushes growth",
+  opposition:"a polarity to see before reacting"
+};
+function firstClause(s){
+  if(!s)return "";
+  var i=s.indexOf(". ");
+  var t=(i>=0?s.slice(0,i):s).replace(/\.$/,"");
+  return t.charAt(0).toLowerCase()+t.slice(1);
+}
+function planetRow(cls,glyph,name,where,badge){
+  return '<li class="planet-row"><span class="glyph '+cls+'">'+glyph+'</span>'+
+    '<span><span class="pname">'+name+'</span> <span class="ptone">'+where+'</span>'+
+    (badge?'<span class="rx-badge">'+badge+'</span>':'')+'</span></li>';
+}
+function renderReading(moon,zod,birthISO){
+  var now=new Date();
+  var merc=mercuryStatus();
+  var venSign=planetSign(VENUS_SIGNS,now);
+  var marsSign=planetSign(MARS_SIGNS,now);
+  var mSign=moonSign(moon.age,zod.name);
+
+  $("readingTitle").textContent=PHASES[moon.idx].title;
+  $("readingEssence").textContent="Moon "+Math.round(moon.ill*100)+"% lit · day "+moon.age.toFixed(1)+" of 29.5 — "+PHASE_ESSENCE[moon.idx]+".";
+
+  var rows="";
+  rows+=planetRow("p-moon","☽","Moon","in "+mSign+" — "+MOON_SIGN_FEELS[mSign],null);
+  rows+=planetRow("p-merc","☿","Mercury","in "+merc.sign+" — "+firstClause(MERC_FEELS[merc.sign]),merc.rx?"RETROGRADE":null);
+  rows+=planetRow("p-venus","♀","Venus","in "+venSign+" — "+firstClause(VENUS_FEELS[venSign]),null);
+  rows+=planetRow("p-mars","♂","Mars","in "+marsSign+" — "+firstClause(MARS_FEELS[marsSign]),null);
+  $("planetList").innerHTML=rows;
+
+  // One wise takeaway, leading with Mercury rx if it's the headline
+  var take;
+  if(merc.rx)take="Mercury is retrograde — don't sign, send, or launch tonight. Use the pause to review.";
+  else take=PHASE_READS[moon.idx];
+  $("readingTakeaway").textContent=take;
+
+  // One personal line (strongest relevant aspect), if birth is set
+  var personal="";
+  if(birthISO){
+    var birth=parseBirth(birthISO);
+    if(!isNaN(birth.getTime())){
+      var natalSun=zodiacFor(birth);
+      var natalMoonSign=moonSign(moonInfo(birth).age,natalSun.name);
+      var mma=aspectName(signDist(natalMoonSign,mSign));
+      if(mma){
+        personal="Tonight's "+mSign+" Moon makes a "+mma+" to your natal "+natalMoonSign+" Moon — "+ASPECT_SHORT[mma]+".";
+      } else {
+        var yEl=ELEMENTS[natalSun.name],moonEl=ELEMENTS[mSign];
+        personal="Your "+yEl+" Sun meets tonight's "+moonEl+" Moon: "+elementCompat(yEl,moonEl)+".";
+      }
+    }
+  }
+  $("readingPersonal").textContent=personal;
+}
+
+function renderPlanets(){
+  var birthISO=null;
+  try{birthISO=localStorage.getItem(BIRTH_KEY);}catch(e){}
+  renderReading(lastMoonInfo||moonInfo(new Date()),zodiacFor(new Date()),birthISO);
+}
+
+// === Sky chart (zodiac wheel with planet positions) ===
+var SIGN_ORDER=["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+var SIGN_GLYPHS=["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
+var TEXT_VS="︎"; // variation selector: force monochrome text glyphs, not color emoji
+// Brightest stars near the zodiac band, with offset (deg) from their sign's center
+var ZODIAC_STARS=[
+  {name:"Aldebaran",sign:"Taurus",off:9},
+  {name:"Pollux",sign:"Gemini",off:16},
+  {name:"Regulus",sign:"Leo",off:0},
+  {name:"Spica",sign:"Libra",off:-7},
+  {name:"Antares",sign:"Scorpio",off:9},
+  {name:"Fomalhaut",sign:"Aquarius",off:-3}
+];
+function signAngle(name){
+  var i=SIGN_ORDER.indexOf(name);
+  return i>=0?(i*30+15):0;
+}
+function moonSign(moonAge,sunSign){
+  var sunIdx=SIGN_ORDER.indexOf(sunSign);
+  var offset=Math.floor(moonAge/(27.32/12))%12;
+  return SIGN_ORDER[(sunIdx+offset)%12];
+}
+function drawSkyChart(){
+  var chart=$("skyChart");
+  var cssW=parseInt(getComputedStyle(chart).width)||320;
+  var ratio=window.devicePixelRatio||1;
+  var S=Math.round(cssW*ratio);
+  chart.width=S;chart.height=S;
+  chart.style.width=cssW+"px";chart.style.height=cssW+"px";
+  var ctx=chart.getContext("2d");
+  var cx=S/2,cy=S/2;
+  var R=S*.35,OR=S*.405,nameR=S*.47,starR=S*.295;
+
+  // Theme-aware palette
+  var cs=getComputedStyle(document.documentElement);
+  var light=document.documentElement.getAttribute("data-theme")==="light";
+  var ink=light?"42,36,26":"245,238,221";
+  function inkA(a){return "rgba("+ink+","+a+")";}
+  var col={
+    sun:(cs.getPropertyValue("--gold")||"#f4c95e").trim(),
+    moon:(cs.getPropertyValue("--silver")||"#e8eef6").trim(),
+    merc:(cs.getPropertyValue("--teal")||"#5ed8c2").trim(),
+    venus:(cs.getPropertyValue("--rose")||"#ff8a98").trim(),
+    mars:(cs.getPropertyValue("--mars")||"#ff9a6b").trim()
+  };
+
+  ctx.clearRect(0,0,S,S);
+
+  // Night arc (the half of the zodiac opposite the Sun — up around midnight)
+  var now=new Date();
+  var sunZ=zodiacFor(now);
+  var sunA=signAngle(sunZ.name)*Math.PI/180;
+  ctx.save();
+  ctx.globalAlpha=light?.1:.12;
+  ctx.fillStyle=light?"#6a8fd8":"#7aa7ff";
+  ctx.beginPath();ctx.moveTo(cx,cy);
+  ctx.arc(cx,cy,R*1.16,sunA+Math.PI/2-Math.PI,sunA+Math.PI/2+Math.PI);
+  ctx.closePath();ctx.fill();
+  ctx.restore();
+
+  // Zodiac ring, glyphs, and sign NAMES
+  for(var i=0;i<12;i++){
+    var a1=(i*30-90)*Math.PI/180;
+    var a2=((i+1)*30-90)*Math.PI/180;
+    ctx.strokeStyle=inkA(.15);ctx.lineWidth=ratio;
+    ctx.beginPath();ctx.arc(cx,cy,R,a1,a2);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a1)*R*.92,cy+Math.sin(a1)*R*.92);
+    ctx.lineTo(cx+Math.cos(a1)*R*1.08,cy+Math.sin(a1)*R*1.08);
+    ctx.stroke();
+    var mid=(a1+a2)/2,cmid=Math.cos(mid),smid=Math.sin(mid);
+    // glyph
+    ctx.fillStyle=inkA(.6);
+    ctx.font="bold "+(13*ratio)+"px Georgia,serif";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(SIGN_GLYPHS[i]+TEXT_VS,cx+cmid*OR,cy+smid*OR);
+    // name — anchored toward centre so long names never clip the edge
+    ctx.fillStyle=inkA(.5);
+    ctx.font=(8*ratio)+"px Georgia,serif";
+    ctx.textAlign=cmid>.3?"right":(cmid<-.3?"left":"center");
+    ctx.fillText(SIGN_ORDER[i],cx+cmid*nameR,cy+smid*nameR);
+  }
+
+  // Outer ring
+  ctx.strokeStyle=inkA(.1);ctx.lineWidth=ratio;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.stroke();
+
+  // Named zodiac stars (ambient)
+  ZODIAC_STARS.forEach(function(st){
+    var a=(signAngle(st.sign)+st.off-90)*Math.PI/180;
+    var sx=cx+Math.cos(a)*starR,sy=cy+Math.sin(a)*starR,sp=3*ratio;
+    ctx.strokeStyle=inkA(.5);ctx.lineWidth=ratio*.8;
+    ctx.beginPath();ctx.moveTo(sx-sp,sy);ctx.lineTo(sx+sp,sy);ctx.moveTo(sx,sy-sp);ctx.lineTo(sx,sy+sp);ctx.stroke();
+    ctx.fillStyle=inkA(.85);ctx.beginPath();ctx.arc(sx,sy,ratio*1.1,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=inkA(.42);ctx.font=(7*ratio)+"px ui-monospace,monospace";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(st.name,sx,sy+8*ratio);
+  });
+
+  // Plot Sun, Moon, Mercury, Venus, Mars on the ring
+  var merc=mercuryStatus();
+  var venSign=planetSign(VENUS_SIGNS,now);
+  var marsSign=planetSign(MARS_SIGNS,now);
+  var mInfo=lastMoonInfo||moonInfo(now);
+  var mSign=moonSign(mInfo.age,sunZ.name);
+
+  var bodies=[
+    {name:"☉ Sun",sign:sunZ.name,color:col.sun,r:7},
+    {name:"☽ Moon",sign:mSign,color:col.moon,r:6},
+    {name:"☿ Mercury",sign:merc.sign,color:col.merc,r:5},
+    {name:"♀ Venus",sign:venSign,color:col.venus,r:5},
+    {name:"♂ Mars",sign:marsSign,color:col.mars,r:5}
+  ];
+  bodies.forEach(function(b,idx){
+    var ang=(signAngle(b.sign)-90+idx*4)*Math.PI/180;
+    var bx=cx+Math.cos(ang)*R,by=cy+Math.sin(ang)*R;
+    ctx.beginPath();ctx.fillStyle=b.color;ctx.arc(bx,by,b.r*ratio,0,Math.PI*2);ctx.fill();
+    ctx.save();ctx.globalAlpha=.3;
+    ctx.beginPath();ctx.arc(bx,by,b.r*ratio*2.5,0,Math.PI*2);ctx.fillStyle=b.color;ctx.fill();ctx.restore();
+    ctx.fillStyle=b.color;
+    ctx.font="bold "+(9*ratio)+"px ui-monospace,monospace";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(b.name+TEXT_VS,cx+Math.cos(ang)*R*.74,cy+Math.sin(ang)*R*.74);
+  });
+
+  // Earth at the centre — geocentric: you are here, looking out
+  var eg=ctx.createRadialGradient(cx-2*ratio,cy-2*ratio,1,cx,cy,7*ratio);
+  eg.addColorStop(0,"#7fc4ff");eg.addColorStop(.55,"#3a7bd5");eg.addColorStop(1,"#1e4a8a");
+  ctx.save();ctx.globalAlpha=.28;ctx.fillStyle="#4a90e2";
+  ctx.beginPath();ctx.arc(cx,cy,15*ratio,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.fillStyle=eg;ctx.beginPath();ctx.arc(cx,cy,7*ratio,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=inkA(.5);ctx.font=(8*ratio)+"px ui-monospace,monospace";
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("EARTH",cx,cy+18*ratio);
+
+  $("skyChartNote").textContent="Moon in "+mSign+" / Mercury in "+merc.sign+" / Venus in "+venSign+" / Mars in "+marsSign+(merc.rx?" · ☿ retrograde":"")+" · shaded = up at midnight";
+}
+
+// === Phase-aware intentions ===
+var INTENTIONS=[
+  ["Begin.","Listen."],
+  ["Start small.","Sense the signal."],
+  ["Commit.","Choose wisely."],
+  ["Refine.","Trust the shape."],
+  ["Express.","Sleep on it."],
+  ["Share.","Keep what works."],
+  ["Simplify.","Cut one thing."],
+  ["Complete.","Let go."]
+];
+
+// === Daily reading (phase x sign) ===
+var PHASE_READS=[
+  "Begin fresh. Clear the table before you set it.",
+  "Start with the smallest step that proves the direction.",
+  "Commit to one path. Testing beats deliberating.",
+  "Refine, don't restart. The shape is emerging.",
+  "Peak energy. Don't confuse the volume with the signal.",
+  "Integrate what worked this cycle. Let pattern become practice.",
+  "Cut one thing that doesn't serve the next phase.",
+  "Let go. The cycle closes itself when you stop holding the door."
+];
+var SIGN_READS={
+  Capricorn:"Your discipline is the asset. Structure the choice before making it.",
+  Aquarius:"Your instinct to rethink is valid - but act before the window closes.",
+  Pisces:"Your sensitivity picks up more than most. Trust it, then verify.",
+  Aries:"Your impulse is fast. Good. Check the direction once before you commit.",
+  Taurus:"Your body knows before your mind does. Listen to what feels heavy vs light.",
+  Gemini:"Your curiosity spots what others miss. Name it clearly.",
+  Cancer:"Your protective instinct is speaking. Decide who this is actually for.",
+  Leo:"Your visibility is high today. Use the attention, don't perform for it.",
+  Virgo:"Your editing eye is sharp. Remove one thing that isn't working.",
+  Libra:"Your balance-seeking can stall you. Pick a side and adjust later.",
+  Scorpio:"Your depth wants to go further. Surface is enough today - resist the pull.",
+  Sagittarius:"Your wide lens is active. Zoom in on the one thing that moves the needle."
+};
+
+// === Birth date / personal layer ===
+var BIRTH_KEY="fc.birth";
+function digitalRoot(n){n=Math.abs(Math.floor(n));if(n===0)return 0;return 1+((n-1)%9);}
+function lifePath(dateStr){
+  var s=dateStr.replace(/-/g,""),sum=0;
+  for(var i=0;i<s.length;i++)sum+=parseInt(s[i],10);
+  return digitalRoot(sum);
+}
+function parseBirth(v){
+  var p=v.split("-");return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
+function renderYou(birthISO){
+  if(!birthISO){youEmpty.hidden=false;youFilled.hidden=true;return;}
+  var birth=parseBirth(birthISO);
+  if(isNaN(birth.getTime()))return;
+  var now=new Date();
+  var zod=zodiacFor(birth);
+  var bMoon=moonInfo(birth);
+  var lp=lifePath(birthISO);
+  var alive=Math.floor((now.getTime()-birth.getTime())/86400000);
+  var tMoon=moonInfo(now);
+  natalSign.textContent=zod.name+" / "+zod.el;
+  natalMoon.textContent=bMoon.phase;
+  lifePathEl.textContent=lp;
+  daysAliveEl.textContent=alive.toLocaleString();
+  var samePhase=bMoon.idx===tMoon.idx;
+  var sameEl=zod.el===zodiacFor(now).el;
+  var echo=samePhase?
+    "Tonight's moon matches your birth moon phase - a return point. Pay attention to what surfaces.":
+    sameEl?
+      "Your "+zod.el+" nature resonates with today's "+zodiacFor(now).el+" sun. Decisions land easier.":
+      "Your birth moon was "+bMoon.phase+". Tonight is "+tMoon.phase+" - different energy. Slow down before committing.";
+  youEcho.textContent=echo;
+  var tIdx=tMoon?tMoon.idx:0;
+  youReading.textContent=PHASE_READS[tIdx]+" "+((SIGN_READS[zod.name])||"");
+  youEmpty.hidden=true;youFilled.hidden=false;
+}
+birthForm.addEventListener("submit",function(e){
+  e.preventDefault();var v=birthInput.value;if(!v)return;
+  try{localStorage.setItem(BIRTH_KEY,v);}catch(e){}
+  renderYou(v);
+});
+youClear.addEventListener("click",function(){
+  try{localStorage.removeItem(BIRTH_KEY);}catch(e){}
+  birthInput.value="";renderYou(null);
+});
+
+// === I Ching Oracle ===
+var castBtn=$("castBtn"),hexBuild=$("hexBuild"),castStatus=$("castStatus"),ichingReading=$("ichingReading");
+var ichingBusy=false;
+var TRI_ORDER=["Qian","Zhen","Kan","Gen","Kun","Xun","Li","Dui"];
+// trigram by lines bottom-to-top, yang=1 yin=0
+var TRIMAP={"111":"Qian","100":"Zhen","010":"Kan","001":"Gen","000":"Kun","011":"Xun","101":"Li","110":"Dui"};
+var TRIGRAMS={Qian:["☰","Heaven"],Kun:["☷","Earth"],Zhen:["☳","Thunder"],Kan:["☵","Water"],Gen:["☶","Mountain"],Xun:["☴","Wind"],Li:["☲","Fire"],Dui:["☱","Lake"]};
+// King Wen number by [lower][upper], indices follow TRI_ORDER
+var KW=[
+  [1,34,5,26,11,9,14,43],
+  [25,51,3,27,24,42,21,17],
+  [6,40,29,4,7,59,64,47],
+  [33,62,39,52,15,53,56,31],
+  [12,16,8,23,2,20,35,45],
+  [44,32,48,18,46,57,50,28],
+  [13,55,63,22,36,37,30,49],
+  [10,54,60,41,19,61,38,58]
+];
+function hexNum(lower,upper){return KW[TRI_ORDER.indexOf(lower)][TRI_ORDER.indexOf(upper)];}
+// [chinese, pinyin, English, reading]
+var HEX={
+  1:["乾","Qián","The Creative","Pure initiative. The time to lead, create, and move first. Sustained, disciplined strength wins; brute force does not."],
+  2:["坤","Kūn","The Receptive","Yield and support. Power now lives in responsiveness, not assertion. Follow the lead, nourish, carry the weight."],
+  3:["屯","Zhūn","Difficulty at the Beginning","A tangled, hard start. Don't force order yet — gather help and move one careful step at a time."],
+  4:["蒙","Méng","Youthful Folly","You don't know yet, and that's fine. Ask sincerely, then trust the answer. Inexperience is cured by honest questions."],
+  5:["需","Xū","Waiting","The work is set; the timing isn't. Wait with confidence, not anxiety. Nourish yourself while the moment ripens."],
+  6:["訟","Sòng","Conflict","Opposition is real. Don't push the dispute to its end — seek a fair mediator and let go of needing to be right."],
+  7:["師","Shī","The Army","Discipline and a clear leader. Organize, commit, move in order. Raw power needs structure to be useful."],
+  8:["比","Bǐ","Holding Together","Union around a center. Draw close to the right people now; hesitation loses the moment."],
+  9:["小畜","Xiǎo Chù","Small Taming","Small forces restrain you — you can't push through yet. Refine the details, gather strength, let the gust pass."],
+  10:["履","Lǚ","Treading","Walking a narrow path with care. Conduct yourself well and even danger steps aside."],
+  11:["泰","Tài","Peace","Heaven and earth meet; everything flows. A fertile, open window — use it well before it shifts."],
+  12:["否","Pǐ","Standstill","Things are blocked and communication fails. Withdraw, keep your integrity, stop forcing closed doors."],
+  13:["同人","Tóng Rén","Fellowship","Open alliance in the light. Shared goals over private ones. Strength comes from being out in the open."],
+  14:["大有","Dà Yǒu","Great Possession","Abundance you can hold. Manage it with humility; clarity at the top keeps good fortune healthy."],
+  15:["謙","Qiān","Modesty","Lowering yourself raises you. Quiet competence carries far now. Less display, more substance."],
+  16:["豫","Yù","Enthusiasm","Momentum gathers and people want to move. Align them early, then let the energy carry the work."],
+  17:["隨","Suí","Following","Adapt to what's right. Lead by serving the moment, not by clinging to the plan you arrived with."],
+  18:["蠱","Gǔ","Work on the Decayed","Something rotted from neglect. Face the mess, repair the root cause, don't paper over it."],
+  19:["臨","Lín","Approach","A rising tide of opportunity. Move while it grows — but note that this spring won't last all year."],
+  20:["觀","Guān","Contemplation","Step back and observe before acting. See the whole pattern, and be worth observing yourself."],
+  21:["噬嗑","Shì Kè","Biting Through","An obstacle must be bitten through. Decisive, fair action clears what blocks you. Don't flinch."],
+  22:["賁","Bì","Grace","Form and beauty matter, but they're surface. Make it elegant — just don't mistake polish for substance."],
+  23:["剝","Bō","Splitting Apart","Things fall away; decline is in motion. Don't resist what's ending. Protect the base and wait."],
+  24:["復","Fù","Return","The turning point — light comes back. A natural restart. Rest, then begin again gently; don't rush the recovery."],
+  25:["無妄","Wú Wàng","Innocence","Act from clean instinct, free of scheming. Do what's right without calculating, and the unexpected serves you."],
+  26:["大畜","Dà Chù","Great Taming","Great force, held and stored. Discipline accumulates power. Hold steady — the buildup is the point."],
+  27:["頤","Yí","Nourishment","Watch what you take in and put out — food, words, attention. You become what you feed on."],
+  28:["大過","Dà Guò","Great Excess","The beam sags under too much weight. The load is unsustainable; act now, decisively, before it breaks."],
+  29:["坎","Kǎn","The Abysmal","Repeated danger, water over water. Stay sincere and keep moving through; don't freeze. Danger itself teaches the way."],
+  30:["離","Lí","The Clinging","Fire needs fuel; clarity needs something to rest on. Stay attached to what's good and let your light hold steady."],
+  31:["咸","Xián","Influence","Mutual attraction. Stay open and receptive — real influence flows from stillness, not pressure."],
+  32:["恆","Héng","Duration","Endurance through change. Stay with what lasts. Consistency beats intensity right now."],
+  33:["遯","Dùn","Retreat","Strategic withdrawal, not defeat. Step back in good order while you still can; distance preserves strength."],
+  34:["大壯","Dà Zhuàng","Great Power","Real strength, real momentum. Use it with restraint and right alignment, or it curdles into reckless force."],
+  35:["晉","Jìn","Progress","Rising like the morning sun, recognized and advancing. Move forward openly — the way up is clear."],
+  36:["明夷","Míng Yí","Darkening of the Light","Brilliance hidden, the climate hostile. Veil your light, keep your inner clarity, endure quietly."],
+  37:["家人","Jiā Rén","The Family","Order begins at home. Clear roles and warmth at the core radiate outward. Tend the inner circle first."],
+  38:["睽","Kuí","Opposition","Misalignment and crossed wires. Small things can still get done — bridge the difference without forcing union."],
+  39:["蹇","Jiǎn","Obstruction","A hard obstacle ahead. Turn inward, find allies, stop bulling forward. The block is asking you to change approach."],
+  40:["解","Xiè","Deliverance","The knot loosens; tension releases. Resolve things quickly and cleanly, then return to normal. Forgive and move on."],
+  41:["損","Sǔn","Decrease","Less is asked of you — give something up. Sincere reduction now makes room for later increase."],
+  42:["益","Yì","Increase","A time of gain and generosity. Act boldly while the wind is at your back, and share the surplus."],
+  43:["夬","Guài","Breakthrough","A resolute push past resistance. Be firm, but expose the problem openly — don't fight in the dark."],
+  44:["姤","Gòu","Coming to Meet","Something small and tempting arrives. Stay alert — what looks minor now can grow. Don't bind to it casually."],
+  45:["萃","Cuì","Gathering Together","People and resources converge on a center. Unite them around a clear purpose and a worthy lead."],
+  46:["升","Shēng","Pushing Upward","Steady, organic growth. Effort compounds now — climb step by step, and don't skip the groundwork."],
+  47:["困","Kùn","Oppression","Exhausted, constrained, drained. Conserve words and energy; stay true inwardly while outwardly stuck."],
+  48:["井","Jǐng","The Well","The source stays constant while people come and go. Tend your foundations — what nourishes must be kept clean and reachable."],
+  49:["革","Gé","Revolution","Real, necessary change. When the time is genuinely ripe, transform completely — but only once trust is there."],
+  50:["鼎","Dǐng","The Cauldron","Transformation that nourishes. Refine the raw into something valuable, and hold on to what proves worthy."],
+  51:["震","Zhèn","The Arousing","Shock, thunder, sudden disruption. Stay composed when it hits — the jolt clears the air. Don't lose your footing."],
+  52:["艮","Gèn","Keeping Still","Stop. Stillness of the mind, not just the body. Move only when movement is right; rest the restless thoughts."],
+  53:["漸","Jiàn","Development","Gradual, rooted progress, like a tree growing. Step by step — lasting things can't be rushed."],
+  54:["歸妹","Guī Mèi","The Marrying Maiden","You're entering on someone else's terms, in a subordinate spot. Tread carefully and know the limits of the role."],
+  55:["豐","Fēng","Abundance","A peak of fullness, like the noon sun. Enjoy it clearly — but noon doesn't last, so don't grasp at the peak."],
+  56:["旅","Lǚ","The Wanderer","A stranger passing through, with few roots. Stay modest, careful, and correct — you have no home advantage here."],
+  57:["巽","Xùn","The Gentle","Penetrating influence, like persistent wind. Small, consistent pressure in one direction beats a single hard shove."],
+  58:["兌","Duì","The Joyous","Open, shared joy and honest exchange. Encourage and be encouraged — truth spoken kindly opens the way."],
+  59:["渙","Huàn","Dispersion","Rigidity dissolves and barriers break up. Let go of hardness and ego; scatter the blockage and reunite around something larger."],
+  60:["節","Jié","Limitation","Set boundaries to become free. Sensible limits create form — just don't over-restrict into bitterness."],
+  61:["中孚","Zhōng Fú","Inner Truth","Sincerity that moves others. Lead from genuine conviction; what's true at the core reaches even the difficult."],
+  62:["小過","Xiǎo Guò","Small Excess","A time for small things, not great ones. Stay modest and exact; overreaching now backfires. Mind the details."],
+  63:["既濟","Jì Jì","After Completion","Everything's in place — for now. The real danger is complacency; order decays unless you keep tending it."],
+  64:["未濟","Wèi Jì","Before Completion","Almost there, not yet across. The final care matters most — one careful step at a time over the threshold."]
+};
+// Moon-phase lens over the reading (index matches moonInfo.idx)
+var MOON_ICHING=[
+  "Cast under a dark new moon — a seeding time. Read this hexagram as counsel for what you plant now, while it's still unseen.",
+  "A waxing crescent backs this reading — fragile early momentum. Begin the move it points to, but quietly.",
+  "First-quarter moon — a decision under pressure. This hexagram meets a moment that's asking you to commit.",
+  "Waxing gibbous — refinement before fullness. Take this as a call to adjust, not to restart.",
+  "A full moon amplifies this reading. Whatever the hexagram reveals is lit brightly now — don't mistake intensity for instruction.",
+  "Waning gibbous — a releasing tide. The lesson here is about what to keep and what to let dim.",
+  "Last-quarter moon — a cutting phase. This hexagram supports clearing, not accumulating.",
+  "Waning crescent, near dark — a closing. Take this as counsel for completion and rest, not new beginnings."
+];
+var EL_LENS={
+  Fire:"your instinct is to act first — let this hexagram set the timing before you move.",
+  Earth:"your instinct is to build — let this hexagram test the ground before you commit.",
+  Air:"your instinct is to weigh every angle — let this hexagram push you to actually decide.",
+  Water:"your instinct is to feel your way — let this hexagram give the feeling a shape you can use."
+};
+
+function makeLineEl(ln,resolved){
+  var d=document.createElement("div");
+  d.className="hex-line "+(ln.yang?"yang":"yin")+(ln.moving&&!resolved?" moving":"");
+  d.innerHTML=ln.yang?'<span class="bar"></span>':'<span class="bar"></span><span class="bar"></span>';
+  return d;
+}
+function renderHexPlaceholder(){
+  hexBuild.innerHTML="";
+  for(var i=0;i<6;i++){
+    var d=makeLineEl({yang:i%2===0,moving:false},true);
+    d.classList.add("show");d.style.opacity=".14";
+    hexBuild.appendChild(d);
+  }
+}
+function castLine(){
+  var bytes=new Uint8Array(3);crypto.getRandomValues(bytes);
+  var heads=0;for(var i=0;i<3;i++)if((bytes[i]&1)===0)heads++;
+  var sum=6+heads; // heads->3, tails->2: total 6..9
+  return {value:sum,yang:(sum%2===1),moving:(sum===6||sum===9)};
+}
+function triFor(a,b,c){return TRIMAP[(a?1:0)+""+(b?1:0)+""+(c?1:0)];}
+function castIChing(){
+  if(ichingBusy)return;
+  ichingBusy=true;castBtn.disabled=true;ichingReading.hidden=true;
+  hexBuild.innerHTML="";
+  var lines=[],i=0;
+  castStatus.textContent="Throwing for line 1 of 6 …";
+  function step(){
+    var ln=castLine();lines.push(ln);
+    var el=makeLineEl(ln,false);hexBuild.appendChild(el);
+    void el.offsetWidth;el.classList.add("show");
+    clink();if(navigator.vibrate)navigator.vibrate(8);
+    i++;
+    if(i<6){castStatus.textContent="Throwing for line "+(i+1)+" of 6 …";setTimeout(step,720);}
+    else{
+      castStatus.textContent="";
+      setTimeout(function(){
+        revealIChing(lines);
+        ichingBusy=false;castBtn.disabled=false;castBtn.textContent="Cast Again";
+      },560);
+    }
+  }
+  setTimeout(step,360);
+}
+function ichingBirthFrame(){
+  var b=null;try{b=localStorage.getItem(BIRTH_KEY);}catch(e){}
+  if(!b)return null;
+  var d=parseBirth(b);if(isNaN(d.getTime()))return null;
+  var z=zodiacFor(d);
+  return "For your "+z.name+" nature ("+z.el+"), "+(EL_LENS[z.el]||"");
+}
+// Directive, decision-oriented counsel per hexagram (faithful to the classical meanings)
+var HEX_COUNSEL={
+  1:"Take the lead and initiate — sustained, disciplined effort wins now, so commit and move first.",
+  2:"Don't force it; support, respond, and follow the stronger current — your power here is in yielding well.",
+  3:"Don't push through the tangle alone — go slowly, gather help, and take one small step at a time.",
+  4:"Admit what you don't yet know and ask sincerely — then trust the answer instead of second-guessing it.",
+  5:"The timing isn't ripe — wait with confidence, keep yourself nourished, and act when the moment opens.",
+  6:"Don't fight this to the bitter end — step back, seek a fair middle, and let go of needing to win.",
+  7:"Organize and commit under clear discipline — move as one, with order and a purpose worth following.",
+  8:"Draw close to the right people now and commit — hesitation will cost you the connection.",
+  9:"You can't force it yet — refine the details, gather strength, and let the small obstacle pass.",
+  10:"Proceed carefully and conduct yourself well — tread lightly and even risk will step aside.",
+  11:"The way is open and favorable — move now, build, and make the most of the harmony before it shifts.",
+  12:"Things are blocked — withdraw, keep your integrity, and stop spending energy on closed doors.",
+  13:"Join with others openly around a shared goal — cooperation in the light is your strength now.",
+  14:"You hold a great deal — carry it with humility and clarity, and manage it generously, not graspingly.",
+  15:"Stay low and let quiet competence carry you — less display, more substance, and you'll rise.",
+  16:"Momentum is gathering — align people early and let the shared energy carry the work forward.",
+  17:"Adapt to what the moment truly needs — lead by serving it, not by clinging to your original plan.",
+  18:"Something neglected has gone bad — face the mess honestly and repair it at the root, not the surface.",
+  19:"A window is opening — move while it grows, but remember this favorable season won't last forever.",
+  20:"Step back and study the whole pattern before acting — and make yourself worth observing.",
+  21:"An obstacle must be removed — act decisively and fairly to bite through what blocks you, no flinching.",
+  22:"Make it graceful, but don't mistake polish for substance — form serves the matter, it isn't the matter.",
+  23:"Something is ending — don't prop it up; protect your base, let it fall away, and wait.",
+  24:"A gentle yes — a natural turning point reopens; begin again slowly and don't rush the recovery.",
+  25:"Act from clean, honest instinct without scheming — do the right thing and the unexpected will serve you.",
+  26:"Hold and store your force — discipline now builds real power, so don't spend it prematurely.",
+  27:"Watch carefully what you take in and put out — words, food, attention; you become what you feed on.",
+  28:"The load is unsustainable — act now and decisively before the beam breaks under the weight.",
+  29:"Danger repeats — don't freeze; stay sincere, keep moving steadily through, and let it teach you the way.",
+  30:"Stay attached to what's good and keep your light steady — clarity needs something solid to rest on.",
+  31:"Stay open and receptive — real influence comes from genuine stillness, not from pushing or pressure.",
+  32:"Endure through the change — stay with what lasts; consistency beats intensity right now.",
+  33:"Withdraw in good order while you still can — this is strategy, not defeat; distance preserves your strength.",
+  34:"You have real strength — use it with restraint and right timing, or it turns into reckless force.",
+  35:"The way up is clear — move forward openly and confidently; this is a time of recognized advance.",
+  36:"The climate is hostile — veil your light, keep your clarity inside, guard your energy and endure quietly.",
+  37:"Tend your inner circle first — clear roles and real warmth at the core will radiate outward.",
+  38:"Things are misaligned — don't force union; bridge the differences in small ways and keep your humor.",
+  39:"A real obstacle stands ahead — stop bulling forward; turn inward, find allies, and change your approach.",
+  40:"The knot is loosening — resolve things quickly and cleanly, then forgive, let go, and return to normal.",
+  41:"Give something up willingly — sincere, simple reduction now makes room for later increase.",
+  42:"The wind is at your back — act boldly and generously while the time of gain lasts, and share the surplus.",
+  43:"Push through the resistance resolutely — but be firm in the open, name the problem, don't fight in the dark.",
+  44:"Something small and tempting has arrived — stay alert; what seems minor can grow, so don't bind to it lightly.",
+  45:"Bring people and resources around a clear center — unite them with real purpose and worthy leadership.",
+  46:"Grow step by step — steady effort compounds now, so climb patiently and don't skip the groundwork.",
+  47:"You're drained and constrained — conserve your words and energy, stay true inwardly, and wait it out.",
+  48:"Tend your foundations — keep the source clean and reachable; nourish what nourishes you and others.",
+  49:"Real change is due — when the time is truly ripe and trust is there, transform completely, not halfway.",
+  50:"Refine the raw into something of value — nourish what's higher in you and hold on to what proves worthy.",
+  51:"A shock is coming — stay composed when it hits; the jolt clears the air, so keep your footing and don't panic.",
+  52:"Stop — quiet the restless mind, not just the body; move only when movement is genuinely right.",
+  53:"Progress gradually and root each step — lasting things can't be rushed, so advance like a tree growing.",
+  54:"You're entering on someone else's terms — tread carefully, know the limits of your role, don't overreach.",
+  55:"You're at a peak — enjoy it clearly and act while it's bright, but know the noon sun doesn't last.",
+  56:"You're passing through with few roots — stay modest, careful, and correct; you have no home advantage here.",
+  57:"Use small, consistent pressure in one steady direction — gentle persistence beats a single hard shove.",
+  58:"Share openly and speak the truth kindly — encourage and be encouraged; honest joy opens the way.",
+  59:"Let rigidity and ego dissolve — break up the blockage and reunite around something larger than yourself.",
+  60:"Set sensible boundaries to be free — give the matter form, but don't over-restrict into bitterness.",
+  61:"Lead from genuine sincerity — what's truly real at your core will reach even the difficult and the closed.",
+  62:"This is a time for small, careful things — stay modest and exact; overreaching now will backfire.",
+  63:"It's in order for now — but don't get complacent; keep tending it, because order decays if you stop.",
+  64:"You're almost across — the final care matters most, so take it one careful step at a time over the threshold."
+};
+// Short moon cue per phase (woven into the synthesis)
+var MOON_CUE=[
+  "Under a dark new moon, this is about what you quietly seed now.",
+  "A waxing crescent backs a small, careful start.",
+  "A first-quarter moon presses you toward a decision.",
+  "Waxing gibbous says refine, don't restart.",
+  "A full moon amplifies all of it — don't mistake intensity for truth.",
+  "A waning moon favors releasing over adding.",
+  "A last-quarter moon favors cutting and clearing.",
+  "A near-dark moon favors closing and rest over new starts."
+];
+function lcFirst(s){return s?s.charAt(0).toLowerCase()+s.slice(1):s;}
+// Standard meanings of the six line positions (bottom = 1 ... top = 6)
+var LINE_POS=[
+  "the very beginning — the root impulse, before anything has taken shape",
+  "the inner ground — what you feel privately, the response not yet shown",
+  "the threshold — an unstable transition point, the leap from inner to outer",
+  "stepping into the open — entering the wider situation, finding footing",
+  "the seat of influence — the clearest, most decisive position in the matter",
+  "the end of the cycle — completion, or the risk of going too far"
+];
+function revealIChing(lines){
+  var pl=triFor(lines[0].yang,lines[1].yang,lines[2].yang);
+  var pu=triFor(lines[3].yang,lines[4].yang,lines[5].yang);
+  var pnum=hexNum(pl,pu),P=HEX[pnum];
+  var moving=[];for(var i=0;i<6;i++)if(lines[i].moving)moving.push(i+1);
+
+  var html="";
+  html+='<div class="hex-name-row"><span class="hex-num">HEXAGRAM '+pnum+'</span><span class="hex-cn">'+P[0]+'</span><span class="hex-en">'+P[1]+" · "+P[2]+'</span></div>';
+  html+='<div class="hex-tri mono">'+TRIGRAMS[pu][0]+" "+TRIGRAMS[pu][1]+" over "+TRIGRAMS[pl][0]+" "+TRIGRAMS[pl][1]+'</div>';
+  html+='<span class="label">Where you are now</span>';
+  html+='<p class="hex-judge">'+P[3]+'</p>';
+
+  var F=null,fnum=null;
+  if(moving.length){
+    var fy=lines.map(function(l){return l.moving?!l.yang:l.yang;});
+    var fl=triFor(fy[0],fy[1],fy[2]),fu=triFor(fy[3],fy[4],fy[5]);
+    fnum=hexNum(fl,fu);F=HEX[fnum];
+    var mini="";
+    for(var k=0;k<6;k++){
+      mini+='<div class="hex-line '+(fy[k]?"yang":"yin")+'">'+(fy[k]?'<span class="bar"></span>':'<span class="bar"></span><span class="bar"></span>')+'</div>';
+    }
+    // what's changing — line-position meaning(s)
+    var posTxt=moving.map(function(m){return "<b>Line "+m+"</b> — "+LINE_POS[m-1];}).join("<br>");
+    html+='<span class="label">What’s changing</span>';
+    html+='<p class="hex-line-pos">'+posTxt+'</p>';
+    html+='<div class="hex-change"><div class="mini">'+mini+'</div><div class="hex-change-txt">'+
+      '<b>Where it’s heading</b>'+
+      '<div class="fname">Hexagram '+fnum+" · "+F[0]+" · "+F[2]+'</div>'+
+      '<p>'+F[3]+'</p></div></div>';
+  }
+
+  // Plain-terms synthesis — directive, woven advice (the part people actually use)
+  var advice=HEX_COUNSEL[pnum];
+  if(F){advice+=" The current is carrying you toward "+F[2]+" — "+lcFirst(HEX_COUNSEL[fnum]);}
+  else{advice+=" Nothing is moving, so this holds as it stands for now.";}
+  var mIdx=(lastMoonInfo||moonInfo(new Date())).idx;
+  advice+=" "+MOON_CUE[mIdx];
+  var bf=ichingBirthFrame();
+  if(bf)advice+=" "+bf;
+  html+='<span class="label">In plain terms</span><p class="hex-advice">'+advice+'</p>';
+  if(!bf)html+='<p class="hex-birth-hint mono">Add your birth date in Your Layer for a personal lens on this reading.</p>';
+
+  html+='<details class="hex-howto"><summary>How to read this</summary><p>An I Ching cast is a mirror, not a forecast. Read it in three beats: the <b>primary hexagram</b> is where you are now; a <b>moving line</b> is the part of your situation that’s actively changing — its position (1 = the start of the matter … 6 = its end) says where; the <b>second hexagram</b> is where that change leads. Hold your real question in mind and notice which line snags — that recognition <i>is</i> the reading.</p></details>';
+
+  ichingReading.innerHTML=html;
+  ichingReading.hidden=false;
+}
+castBtn.addEventListener("click",castIChing);
+renderHexPlaceholder();
+
+// === Flip ===
+function renderProof(byte,isHeads){
+  var bits=byte.toString(2).padStart(8,"0");
+  var html="";
+  for(var i=0;i<8;i++){
+    var on=bits.charAt(i)==="1";
+    var decider=(i===7);
+    html+='<div class="bit-cell'+(on?" on":"")+(decider?(" decider "+(isHeads?"heads":"tails")):"")+'">'+bits.charAt(i)+'</div>';
+  }
+  $("byteViz").innerHTML=html;
+  $("byteCaption").innerHTML="Byte <b>"+byte+"</b> · last bit "+bits.charAt(7)+" → "+
+    (isHeads?'even → <b class="h">Heads</b>':'odd → <b class="t">Tails</b>');
+  var total=H+T,hp=total?H/total*100:50;
+  $("balanceFill").style.width=hp.toFixed(1)+"%";
+  $("balH").textContent="Heads "+H+" · "+Math.round(hp)+"%";
+  $("balT").textContent=Math.round(100-hp)+"% · "+T+" Tails";
+}
+function flip(){
+  if(busy)return;
+  if(actx&&actx.state==="suspended")actx.resume();
+  busy=true;flipBtn.disabled=true;
+  result.classList.remove("show");
+
+  var byte=new Uint8Array(1);crypto.getRandomValues(byte);byte=byte[0];
+  var isHeads=(byte&1)===0;
+  var dur;
+
+  if(coinDesign==="v2"){
+    var spins2=8+Math.floor(byte/64);
+    rotx=rotx-(rotx%360)+spins2*360+(isHeads?0:180);
+    coin2.style.transform="rotateX("+rotx+"deg)";
+    coinWrap2.classList.remove("toss");void coinWrap2.offsetWidth;coinWrap2.classList.add("toss");
+    setTimeout(function(){var g=$("coin2Glow");g.classList.remove("burst");void g.offsetWidth;g.classList.add("burst");},1380);
+    dur=1400;
+  } else {
+    var spins=9+Math.floor(byte/48);
+    rot=rot-(rot%360)+spins*360+(isHeads?0:180);
+    coin.style.transform="rotateY("+rot+"deg) rotateX(7deg)";
+    coinWrap.classList.remove("arc");void coinWrap.offsetWidth;coinWrap.classList.add("arc");
+    setTimeout(function(){
+      coin.style.transition="transform .25s ease-out";
+      coin.style.transform="rotateY("+rot+"deg) rotateX(0)";
+      setTimeout(function(){coin.style.transition="transform 1.5s cubic-bezier(.14,.82,.18,1)";},300);
+    },1250);
+    dur=1500;
+  }
+
+  setTimeout(function(){
+    clink();
+    outcome.textContent=coinDesign==="v2"?(isHeads?"☉ SUN":"☽ MOON"):(isHeads?"HEADS":"TAILS");
+    outcome.style.color=isHeads?"var(--gold)":"var(--silver)";
+    var mi=lastMoonInfo?lastMoonInfo.idx:0;
+    var intent=INTENTIONS[mi];
+    sigline.textContent=(isHeads?"Sun side":"Moon side")+" - "+intent[isHeads?0:1];
+    if(isHeads)H++;else T++;
+    tally.textContent="Heads "+H+" / Tails "+T;
+    renderProof(byte,isHeads);
+    result.classList.add("show");
+    if(navigator.vibrate)navigator.vibrate(isHeads?[18]:[10,30,10]);
+    busy=false;flipBtn.disabled=false;
+  },dur);
+}
+
+// === Theme toggle ===
+var themeToggle=$("themeToggle");
+function applyThemeIcon(){
+  var light=document.documentElement.getAttribute("data-theme")==="light";
+  // show the current mode; title states the action
+  themeToggle.innerHTML=light?'<span class="ti">☀</span> Light':'<span class="ti">☾</span> Dark';
+  themeToggle.title=light?"Switch to dark mode":"Switch to light mode";
+  var meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute("content",light?"#efe9da":"#03050a");
+}
+themeToggle.addEventListener("click",function(){
+  var light=document.documentElement.getAttribute("data-theme")==="light";
+  if(light)document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme","light");
+  try{localStorage.setItem("fc.theme",light?"dark":"light");}catch(e){}
+  applyThemeIcon();
+  drawSkyChart();
+});
+applyThemeIcon();
+
+// === Coin design toggle (V1 Quarter = default, V2 Celestial) ===
+var coinDesign="v1";try{coinDesign=localStorage.getItem("fc.coin")||"v1";}catch(e){}
+var rotx=0;
+var coin2=$("coin2"),coinWrap2=$("coinWrap2"),coinStage1=$("coinStage1"),coinStage2=$("coinStage2"),coinToggle=$("coinToggle");
+function applyCoinDesign(){
+  var v2=coinDesign==="v2";
+  coinStage1.hidden=v2;coinStage2.hidden=!v2;
+  coinToggle.innerHTML=v2?'<span class="ti">☉</span> Celestial coin':'<span class="ti">◉</span> Quarter coin';
+  coinToggle.title=v2?"Switch to the US Quarter":"Switch to the Celestial coin";
+}
+coinToggle.addEventListener("click",function(){
+  coinDesign=coinDesign==="v2"?"v1":"v2";
+  try{localStorage.setItem("fc.coin",coinDesign);}catch(e){}
+  applyCoinDesign();
+});
+applyCoinDesign();
+coin2.addEventListener("click",flip);
+
+coin.addEventListener("click",flip);
+flipBtn.addEventListener("click",flip);
+renderSky();
+var savedBirth=null;try{savedBirth=localStorage.getItem(BIRTH_KEY);}catch(e){}
+if(savedBirth){birthInput.value=savedBirth;renderYou(savedBirth);}else{renderYou(null);}
+
+// === NASA API feeds (cached daily in localStorage) ===
+var isoToday=new Date().toISOString().slice(0,10);
+
+// Hardcoded seed so page works even when API is rate-limited
+var APOD_SEED={media_type:"image",url:"https://apod.nasa.gov/apod/image/2605/Ngc3660Burcin_Block_960.jpg",title:"NGC 3660 and Burcin's Galaxy",explanation:"What's the story behind those unusual rings? The unusual galaxy in the lower left of the featured image is formally known as LEDA 1000714, but informally called Burcin's Galaxy. The galaxy was captured by chance in a deep image of nearby spiral galaxy NGC 3660, upper right. Also captured by chance is SN 2026cff, a supernova found just to the right of the central bar."};
+(function(){var ck="fc.apod."+isoToday;try{if(!localStorage.getItem(ck))localStorage.setItem(ck,JSON.stringify(APOD_SEED));}catch(e){}})();
+
+function nasaCache(key,url,cb,fallback){
+  var cacheKey="fc."+key+"."+isoToday;
+  var cached=null;
+  try{cached=localStorage.getItem(cacheKey);}catch(e){}
+  if(cached){try{cb(JSON.parse(cached));return;}catch(e){}}
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    if(d&&!d.error&&d.code!=="OVER_RATE_LIMIT"){
+      try{localStorage.setItem(cacheKey,JSON.stringify(d));}catch(e){}
+      cb(d);
+    } else if(fallback)fallback();
+  }).catch(function(){if(fallback)fallback();});
+}
+
+nasaCache("apod","https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY",function(d){
+  if(d.media_type==="image"&&d.url){
+    $("apodImg").src=d.url;
+    $("apodImg").alt=d.title||"";
+    $("apodTitle").textContent=d.title||"";
+    var desc=d.explanation||"";
+    var sentences=desc.split(". ");
+    $("apodDesc").textContent=sentences.slice(0,2).join(". ")+(sentences.length>2?".":"");
+    $("apodCard").hidden=false;
+  }
+});
+
+renderPlanets();
+drawSkyChart();
+
+// Moon 3D tilt on drag
+var moonStage=$("moonStage"),mDrag=false,mX0=0,mY0=0;
+function mPos(e){var t=e.touches?e.touches[0]:e;return{x:t.clientX,y:t.clientY};}
+moonStage.addEventListener("mousedown",function(e){mDrag=true;var p=mPos(e);mX0=p.x;mY0=p.y;moonImg.classList.remove("idle");});
+moonStage.addEventListener("touchstart",function(e){mDrag=true;var p=mPos(e);mX0=p.x;mY0=p.y;moonImg.classList.remove("idle");},{passive:true});
+window.addEventListener("mousemove",function(e){if(!mDrag)return;var p=mPos(e);tiltMoon(p.x-mX0,p.y-mY0);});
+window.addEventListener("touchmove",function(e){if(!mDrag)return;var p=mPos(e);tiltMoon(p.x-mX0,p.y-mY0);},{passive:true});
+function endTilt(){if(!mDrag)return;mDrag=false;moonImg.classList.add("idle");moonImg.style.transform="rotateY(0deg) rotateX(0deg)";moonImg.style.filter="";}
+window.addEventListener("mouseup",endTilt);
+window.addEventListener("touchend",endTilt);
+function tiltMoon(dx,dy){
+  var maxA=18;
+  var ry=Math.max(-maxA,Math.min(maxA,dx*.12));
+  var rx=Math.max(-maxA,Math.min(maxA,-dy*.12));
+  moonImg.style.transform="rotateY("+ry+"deg) rotateX("+rx+"deg)";
+  var sx=-ry*.8,sy=-rx*.8;
+  moonImg.style.filter="drop-shadow("+sx+"px "+sy+"px 50px rgba(200,210,230,.18)) drop-shadow("+sx*2+"px "+sy*2+"px 120px rgba(160,180,210,.08))";
+}
+</script>
+</body>
+</html>
