@@ -549,15 +549,16 @@
   .tarot-title{font-size:clamp(32px,5vw,52px);line-height:.92;letter-spacing:-.01em}
   .tarot-intro{color:#b0a898;font-size:13px;line-height:1.55;max-width:440px}
   .tarot-stage{display:flex;flex-direction:column;align-items:center;gap:20px}
-  .tarot-spread{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;min-height:244px;align-items:flex-start}
+  .tarot-spread{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;min-height:244px;align-items:flex-start;perspective:1000px}
   .tcard-slot{display:flex;flex-direction:column;align-items:center;gap:9px;width:150px}
   .tcard-pos{color:var(--faint);font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-family:ui-monospace,monospace;text-align:center}
   .tcard{
     position:relative;width:150px;height:214px;border-radius:16px;border:1px solid var(--line);
     background:linear-gradient(160deg,rgba(24,19,38,.62),rgba(8,10,18,.86));
     display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:17px 12px 14px;
-    opacity:0;transform:translateY(14px) scale(.94);
-    transition:opacity .5s ease,transform .55s cubic-bezier(.2,.8,.3,1);
+    opacity:0;transform:translateY(20px) scale(.9) rotateX(10deg);transform-origin:center bottom;
+    transition:opacity .4s ease-out,transform .52s cubic-bezier(.18,.86,.26,1.04);
+    will-change:opacity,transform;
     box-shadow:0 18px 40px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.06);
   }
   :root[data-theme="light"] .tcard{background:linear-gradient(160deg,rgba(255,253,247,.92),rgba(244,238,225,.96));box-shadow:0 16px 36px rgba(80,66,40,.16),inset 0 1px 0 rgba(255,255,255,.6)}
@@ -1938,16 +1939,16 @@ function drawTarot(){
     void card.offsetWidth;card.classList.add("show");
     cardFlip();if(navigator.vibrate)navigator.vibrate(8);
     k++;
-    if(k<3){drawStatus.textContent="Drawing "+TAROT_POS[k][0]+" …";setTimeout(step,640);}
+    if(k<3){drawStatus.textContent="Drawing "+TAROT_POS[k][0]+" …";setTimeout(step,470);}
     else{
       drawStatus.textContent="";
       setTimeout(function(){
         revealTarot(draw);
         tarotBusy=false;drawBtn.disabled=false;drawBtn.textContent="Draw Again";
-      },520);
+      },420);
     }
   }
-  setTimeout(step,340);
+  setTimeout(step,260);
 }
 function revealTarot(draw){
   var html='<span class="label">Your Reading</span><div class="tarot-cards-read">';
