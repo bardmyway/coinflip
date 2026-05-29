@@ -1078,25 +1078,25 @@ function woodTone(idx){
   if(!actx)return;
   if(actx.state==="suspended")actx.resume();
   var t=actx.currentTime,f0=WOOD_NOTES[idx||0]||392;
-  var master=actx.createGain();master.gain.value=.085;master.connect(actx.destination);
+  var master=actx.createGain();master.gain.value=.055;master.connect(actx.destination);
   // soft lowpass over the whole voice — rolls off any harshness for warmth
-  var warm=actx.createBiquadFilter();warm.type="lowpass";warm.frequency.value=2600;warm.Q.value=.5;warm.connect(master);
-  // woody grain — the soft mallet contact, very short and dark
+  var warm=actx.createBiquadFilter();warm.type="lowpass";warm.frequency.value=2200;warm.Q.value=.4;warm.connect(master);
+  // soft mallet contact — a brief, dark woody grain pitched near the note
   var src=actx.createBufferSource();src.buffer=getNoise();
-  var lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1050;lp.Q.value=.5;
-  var ng=actx.createGain();ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(.1,t+.006);
-  ng.gain.exponentialRampToValueAtTime(.0001,t+.06);
-  src.connect(lp);lp.connect(ng);ng.connect(warm);src.start(t);src.stop(t+.07);
-  // rounded body — harmonic sines with a gentle natural pitch-settle, soft attack, long decay
-  [1,2,3].forEach(function(mult,i){
+  var bp=actx.createBiquadFilter();bp.type="bandpass";bp.frequency.value=f0*2.1;bp.Q.value=1.8;
+  var ng=actx.createGain();ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(.35,t+.005);
+  ng.gain.exponentialRampToValueAtTime(.0001,t+.05);
+  src.connect(bp);bp.connect(ng);ng.connect(warm);src.start(t);src.stop(t+.06);
+  // hollow wooden body — fundamental, soft octave, and an INHARMONIC overtone (the woodblock knock)
+  [[1,.5,.34],[2,.13,.24],[2.76,.1,.12]].forEach(function(p){
     var o=actx.createOscillator(),g=actx.createGain();
     o.type="sine";
-    o.frequency.setValueAtTime(f0*mult*1.013,t);
-    o.frequency.exponentialRampToValueAtTime(f0*mult,t+.045);
+    o.frequency.setValueAtTime(f0*p[0]*1.011,t);
+    o.frequency.exponentialRampToValueAtTime(f0*p[0],t+.035);
     o.detune.value=(Math.random()-.5)*4;
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime([.5,.14,.05][i],t+.012);
-    g.gain.exponentialRampToValueAtTime(.0001,t+[.52,.36,.24][i]);
-    o.connect(g);g.connect(warm);o.start(t);o.stop(t+.56);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(p[1],t+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,t+p[2]);
+    o.connect(g);g.connect(warm);o.start(t);o.stop(t+p[2]+.05);
   });
 }
 // Card flip — one per tarot card (a paper fwip)
