@@ -1078,20 +1078,25 @@ function woodTone(idx){
   if(!actx)return;
   if(actx.state==="suspended")actx.resume();
   var t=actx.currentTime,f0=WOOD_NOTES[idx||0]||392;
-  var master=actx.createGain();master.gain.value=.08;master.connect(actx.destination);
-  // faint wood grain — very soft, heavily lowpassed, no sharp knock
+  var master=actx.createGain();master.gain.value=.085;master.connect(actx.destination);
+  // soft lowpass over the whole voice — rolls off any harshness for warmth
+  var warm=actx.createBiquadFilter();warm.type="lowpass";warm.frequency.value=2600;warm.Q.value=.5;warm.connect(master);
+  // woody grain — the soft mallet contact, very short and dark
   var src=actx.createBufferSource();src.buffer=getNoise();
-  var lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=850;lp.Q.value=.4;
-  var ng=actx.createGain();ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(.11,t+.007);
-  ng.gain.exponentialRampToValueAtTime(.0001,t+.07);
-  src.connect(lp);lp.connect(ng);ng.connect(master);src.start(t);src.stop(t+.08);
-  // rounded marimba-like body — pure sines, soft attack, long gentle decay
+  var lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1050;lp.Q.value=.5;
+  var ng=actx.createGain();ng.gain.setValueAtTime(0,t);ng.gain.linearRampToValueAtTime(.1,t+.006);
+  ng.gain.exponentialRampToValueAtTime(.0001,t+.06);
+  src.connect(lp);lp.connect(ng);ng.connect(warm);src.start(t);src.stop(t+.07);
+  // rounded body — harmonic sines with a gentle natural pitch-settle, soft attack, long decay
   [1,2,3].forEach(function(mult,i){
     var o=actx.createOscillator(),g=actx.createGain();
-    o.type="sine";o.frequency.value=f0*mult;o.detune.value=(Math.random()-.5)*4;
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime([.5,.14,.05][i],t+.013);
-    g.gain.exponentialRampToValueAtTime(.0001,t+[.46,.32,.22][i]);
-    o.connect(g);g.connect(master);o.start(t);o.stop(t+.5);
+    o.type="sine";
+    o.frequency.setValueAtTime(f0*mult*1.013,t);
+    o.frequency.exponentialRampToValueAtTime(f0*mult,t+.045);
+    o.detune.value=(Math.random()-.5)*4;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime([.5,.14,.05][i],t+.012);
+    g.gain.exponentialRampToValueAtTime(.0001,t+[.52,.36,.24][i]);
+    o.connect(g);g.connect(warm);o.start(t);o.stop(t+.56);
   });
 }
 // Card flip — one per tarot card (a paper fwip)
@@ -1689,16 +1694,16 @@ function castIChing(){
     void el.offsetWidth;el.classList.add("show");
     woodTone(i);if(navigator.vibrate)navigator.vibrate(8);
     i++;
-    if(i<6){castStatus.textContent="Throwing for line "+(i+1)+" of 6 …";setTimeout(step,720);}
+    if(i<6){castStatus.textContent="Throwing for line "+(i+1)+" of 6 …";setTimeout(step,540);}
     else{
       castStatus.textContent="";
       setTimeout(function(){
         revealIChing(lines);
         ichingBusy=false;castBtn.disabled=false;castBtn.textContent="Cast Again";
-      },560);
+      },440);
     }
   }
-  setTimeout(step,360);
+  setTimeout(step,260);
 }
 function ichingBirthFrame(){
   var b=null;try{b=localStorage.getItem(BIRTH_KEY);}catch(e){}
