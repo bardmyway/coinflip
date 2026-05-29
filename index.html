@@ -543,6 +543,44 @@
   .hex-lens .moon-lens{color:#bcd0e6}
   .hex-lens .birth-lens{color:#d2c6ec;margin-top:7px;display:block}
 
+  /* === Tarot Oracle === */
+  .tarot-panel{width:min(1200px,100%);margin:0 auto;padding:32px 28px;display:flex;flex-direction:column;gap:22px}
+  .tarot-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+  .tarot-title{font-size:clamp(32px,5vw,52px);line-height:.92;letter-spacing:-.01em}
+  .tarot-intro{color:#b0a898;font-size:13px;line-height:1.55;max-width:440px}
+  .tarot-stage{display:flex;flex-direction:column;align-items:center;gap:20px}
+  .tarot-spread{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;min-height:244px;align-items:flex-start}
+  .tcard-slot{display:flex;flex-direction:column;align-items:center;gap:9px;width:150px}
+  .tcard-pos{color:var(--faint);font-size:9px;letter-spacing:.2em;text-transform:uppercase;font-family:ui-monospace,monospace;text-align:center}
+  .tcard{
+    position:relative;width:150px;height:214px;border-radius:16px;border:1px solid var(--line);
+    background:linear-gradient(160deg,rgba(24,19,38,.62),rgba(8,10,18,.86));
+    display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:17px 12px 14px;
+    opacity:0;transform:translateY(14px) scale(.94);
+    transition:opacity .5s ease,transform .55s cubic-bezier(.2,.8,.3,1);
+    box-shadow:0 18px 40px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  :root[data-theme="light"] .tcard{background:linear-gradient(160deg,rgba(255,253,247,.92),rgba(244,238,225,.96));box-shadow:0 16px 36px rgba(80,66,40,.16),inset 0 1px 0 rgba(255,255,255,.6)}
+  .tcard.show{opacity:1;transform:none}
+  .tcard::before{content:"";position:absolute;inset:5px;border-radius:11px;border:1px solid rgba(244,201,94,.24);pointer-events:none}
+  .tcard-roman{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.16em;color:var(--gold)}
+  .tcard-glyph{font-size:60px;line-height:1;color:var(--ink);text-shadow:0 0 24px rgba(176,160,255,.4)}
+  .tcard.reversed .tcard-glyph{transform:rotate(180deg)}
+  .tcard-foot{text-align:center}
+  .tcard-name{font-size:13px;line-height:1.18}
+  .tcard-corr{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-family:ui-monospace,monospace;margin-top:3px}
+  .tcard-rev-tag{position:absolute;top:9px;right:10px;font-size:8px;letter-spacing:.08em;color:var(--rose);font-family:ui-monospace,monospace;border:1px solid rgba(255,138,152,.45);border-radius:6px;padding:1px 4px}
+  .tarot-reading{border-top:1px solid var(--line);padding-top:22px;display:flex;flex-direction:column;gap:14px}
+  .tarot-reading[hidden]{display:none}
+  .tarot-cards-read{display:flex;flex-direction:column;gap:13px}
+  .tpos{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+  .tpos-label{color:var(--teal);font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-family:ui-monospace,monospace;flex:none;width:104px;padding-top:3px}
+  .tpos-body{flex:1;min-width:220px}
+  .tpos-card{font-size:16px;color:var(--ink);margin-bottom:3px}
+  .tpos-card .rev{color:var(--rose);font-size:11px;letter-spacing:.06em;font-family:ui-monospace,monospace}
+  .tpos-essence{color:#c8c0ae;font-size:13px;line-height:1.55}
+  :root[data-theme="light"] .tpos-essence{color:#4a4234}
+
   .footer-note{padding:0 6px;color:#6e6656;font-size:11px;line-height:1.5;letter-spacing:.04em}
 
   @media(max-width:960px){
@@ -561,6 +599,12 @@
     .moon-area canvas{width:min(260px,75vw);height:min(260px,75vw)}
     .iching-panel{padding:22px 16px}
     .hex-line.moving::after{right:-18px;width:6px;height:6px}
+    .tarot-panel{padding:22px 16px}
+    .tarot-spread{gap:12px;min-height:214px}
+    .tcard-slot,.tcard{width:128px}
+    .tcard{height:186px}
+    .tcard-glyph{font-size:48px}
+    .tpos-label{width:100%}
   }
 </style>
 <script>
@@ -807,6 +851,22 @@
     </section>
   </section>
 
+  <section class="tarot-panel panel" aria-label="Tarot decision oracle">
+    <div class="tarot-head">
+      <div>
+        <span class="label">The Oracle &middot; Tarot</span>
+        <h2 class="tarot-title">Tarot</h2>
+      </div>
+      <p class="tarot-intro">Hold one decision in mind &mdash; something with a real fork in it. Three cards of the Major Arcana are drawn from the same crypto-fair entropy as the coin: where you stand, what to do, and where it leads. A reversed card turns the meaning.</p>
+    </div>
+    <div class="tarot-stage">
+      <div class="tarot-spread" id="tarotSpread"></div>
+      <button class="cast-btn" id="drawBtn" type="button">Draw the Cards</button>
+      <div class="cast-status mono" id="drawStatus" role="status" aria-live="polite"></div>
+    </div>
+    <div class="tarot-reading" id="tarotReading" hidden></div>
+  </section>
+
   <section class="context-section" aria-label="Tonight's sky and your layer">
     <section class="context-col panel">
       <section class="moon-area">
@@ -874,7 +934,7 @@
     <p class="apod-desc" id="apodDesc"></p>
   </section>
 
-  <p class="footer-note mono">The flip is crypto-fair (crypto.getRandomValues). The I Ching is cast the same way &mdash; three coins per line, pure entropy, no seeding. Moon phase computed from NASA reference epoch. Planetary positions are 2026 ephemeris estimates. Birth data stays in your browser. Astrology and the I Ching are symbolic context, not prediction.</p>
+  <p class="footer-note mono">The flip is crypto-fair (crypto.getRandomValues). The I Ching is cast the same way &mdash; three coins per line, pure entropy, no seeding. The tarot draws the same way &mdash; each card a hardware-random byte, rejection-sampled with no modulo bias. Moon phase computed from NASA reference epoch. Planetary positions are 2026 ephemeris estimates. Birth data stays in your browser. Astrology and the I Ching are symbolic context, not prediction.</p>
 </main>
 
 <script>
@@ -1011,6 +1071,41 @@ function clink(){
     });
   }
   tink(t,.28,.36);tink(t+.09,.13,.24);tink(t+.15,.06,.16);
+}
+// Soft wooden tone — one per I Ching line (a coin settling on wood)
+function woodTone(){
+  if(!actx)return;
+  if(actx.state==="suspended")actx.resume();
+  var t=actx.currentTime;
+  var master=actx.createGain();master.gain.value=.16;master.connect(actx.destination);
+  var src=actx.createBufferSource();src.buffer=getNoise();
+  var lp=actx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1400;lp.Q.value=.7;
+  var ng=actx.createGain();ng.gain.setValueAtTime(.5,t);ng.gain.exponentialRampToValueAtTime(.0001,t+.05);
+  src.connect(lp);lp.connect(ng);ng.connect(master);src.start(t);src.stop(t+.06);
+  [196,330,521].forEach(function(f,i){
+    var o=actx.createOscillator(),g=actx.createGain();
+    o.type=i===0?"triangle":"sine";o.frequency.value=f;o.detune.value=(Math.random()-.5)*8;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime([.5,.26,.12][i],t+.004);
+    g.gain.exponentialRampToValueAtTime(.0001,t+[.34,.22,.14][i]);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+.4);
+  });
+}
+// Card flip — one per tarot card (a paper fwip)
+function cardFlip(){
+  if(!actx)return;
+  if(actx.state==="suspended")actx.resume();
+  var t=actx.currentTime;
+  var master=actx.createGain();master.gain.value=.13;master.connect(actx.destination);
+  var src=actx.createBufferSource();src.buffer=getNoise();
+  var bp=actx.createBiquadFilter();bp.type="bandpass";
+  bp.frequency.setValueAtTime(1200,t);bp.frequency.exponentialRampToValueAtTime(3000,t+.11);bp.Q.value=.8;
+  var ng=actx.createGain();ng.gain.setValueAtTime(.0001,t);
+  ng.gain.exponentialRampToValueAtTime(.6,t+.02);ng.gain.exponentialRampToValueAtTime(.0001,t+.14);
+  src.connect(bp);bp.connect(ng);ng.connect(master);src.start(t);src.stop(t+.16);
+  var src2=actx.createBufferSource();src2.buffer=getNoise();
+  var hp=actx.createBiquadFilter();hp.type="highpass";hp.frequency.value=2500;
+  var ng2=actx.createGain();ng2.gain.setValueAtTime(.22,t+.08);ng2.gain.exponentialRampToValueAtTime(.0001,t+.13);
+  src2.connect(hp);hp.connect(ng2);ng2.connect(master);src2.start(t+.08);src2.stop(t+.15);
 }
 
 // === Render sky ===
@@ -1588,7 +1683,7 @@ function castIChing(){
     var ln=castLine();lines.push(ln);
     var el=makeLineEl(ln,false);hexBuild.appendChild(el);
     void el.offsetWidth;el.classList.add("show");
-    clink();if(navigator.vibrate)navigator.vibrate(8);
+    woodTone();if(navigator.vibrate)navigator.vibrate(8);
     i++;
     if(i<6){castStatus.textContent="Throwing for line "+(i+1)+" of 6 …";setTimeout(step,720);}
     else{
@@ -1745,6 +1840,132 @@ function revealIChing(lines){
 }
 castBtn.addEventListener("click",castIChing);
 renderHexPlaceholder();
+
+// === Tarot ===
+var drawBtn=$("drawBtn"),tarotSpread=$("tarotSpread"),drawStatus=$("drawStatus"),tarotReading=$("tarotReading");
+var tarotBusy=false;
+// [glyph (astrological correspondence), name, roman, correspondence label, upright, reversed]
+var TAROT=[
+  ["♅","The Fool","0","Uranus","A clean beginning and a leap into the unknown — say yes and trust the first step.","Recklessness or fear of starting; look before you leap, because naïveté costs here."],
+  ["☿","The Magician","I","Mercury","You have every tool you need — focus your will, act with intent, and make it real.","Scattered energy or self-deception; realign your means with your ends before you move."],
+  ["☽","The High Priestess","II","Moon","The answer is already in you, beneath words — wait, listen inward, and don't force the knowing.","You're overriding your gut, or something's being withheld; stop talking past what you quietly sense."],
+  ["♀","The Empress","III","Venus","Abundance and creative growth — tend what you've started and let it ripen.","Creative block, or giving until you're empty; replenish yourself before you grow anything else."],
+  ["♈","The Emperor","IV","Aries","Build structure and take command — set the rules, hold the line, lead steadily.","Rigidity or control for its own sake; loosen the grip, because domination isn't leadership."],
+  ["♉","The Hierophant","V","Taurus","Lean on the proven way and seek counsel — tradition has something to teach here.","The old rules don't fit; it's time to break form and find your own way through."],
+  ["♊","The Lovers","VI","Gemini","A choice of the heart that defines your values — choose what you truly align with, not what's easy.","Disharmony or a values conflict; get honest about what you actually want before deciding."],
+  ["♋","The Chariot","VII","Cancer","Victory through focused will — take the reins, pick a direction, and drive hard.","You're pulling in two directions; master yourself first or the momentum scatters."],
+  ["♌","Strength","VIII","Leo","Quiet courage and patience tame this — lead with gentle strength, not force.","Self-doubt or raw force; your power returns through calm, not through pushing harder."],
+  ["♍","The Hermit","IX","Virgo","Withdraw and seek the answer alone — inner clarity matters more than outside noise now.","Isolation has done its work; don't hide from re-engaging the world."],
+  ["♃","Wheel of Fortune","X","Jupiter","The wheel turns in your favor — go with the momentum; a cycle is opening.","Timing's against you for now; wait for the turn instead of fighting it."],
+  ["♎","Justice","XI","Libra","Cause and effect — decide fairly and honestly, and own the result either way.","You're avoiding accountability; face the truth squarely before you move."],
+  ["♆","The Hanged Man","XII","Neptune","Pause and surrender the old view — a different angle, or letting go, reveals the way.","The pause has gone on too long; stop stalling and release it."],
+  ["♏","Death","XIII","Scorpio","A necessary ending makes room for renewal — let the old thing die cleanly and don't cling.","You're resisting an ending that's already over; let it go."],
+  ["♐","Temperance","XIV","Sagittarius","Blend and find the middle way — patience and balance carry this, not extremes.","Imbalance or impatience; recalibrate, because you're overdoing one side of it."],
+  ["♑","The Devil","XV","Capricorn","Something binds you — a fear, a habit, a desire; name the chain and it loosens.","You're ready to break free and reclaim your power — so do it."],
+  ["♂","The Tower","XVI","Mars","Sudden upheaval clears a false structure — let it fall; what breaks needed to.","Don't shore up what's meant to collapse; the longer you brace it, the worse the fall."],
+  ["♒","The Star","XVII","Aquarius","Hope and healing after hardship — trust the calm and keep gently moving toward it.","Lost faith or discouragement; the light is still there, so reconnect to what you're hoping for."],
+  ["♓","The Moon","XVIII","Pisces","Things aren't as they seem — don't decide in the fog; let intuition lead until it clears.","The fog is lifting and the truth is surfacing; you can start to trust what you see."],
+  ["☉","The Sun","XIX","Sun","Clarity, warmth, success — the way is bright, so move forward openly and with confidence.","The good is real but dimmed; don't let a small doubt overshadow it."],
+  ["♇","Judgement","XX","Pluto","A reckoning and a calling — answer it honestly and rise to the larger version of this choice.","You're avoiding a decision you already know you must make; stop dodging the call."],
+  ["♄","The World","XXI","Saturn","Completion and arrival — a cycle closes well, so integrate it and step whole into what's next.","You're close, but one loose end remains; finish the last piece before you move on."]
+];
+var TAROT_POS=[["The Situation","where you stand"],["What to Do","the move this favors"],["The Outcome","where it leads"]];
+var TAROT_EL_LENS={
+  Fire:"your instinct is to act first — let the cards check your timing, not just your nerve.",
+  Earth:"your instinct is to build — let the cards test the ground before you commit.",
+  Air:"your instinct is to weigh every angle — let the cards push you from thinking into choosing.",
+  Water:"your instinct is to feel your way — let the cards give the feeling a shape you can act on."
+};
+function tarotBirthFrame(){
+  var b=null;try{b=localStorage.getItem(BIRTH_KEY);}catch(e){}
+  if(!b)return null;
+  var d=parseBirth(b);if(isNaN(d.getTime()))return null;
+  var z=zodiacFor(d);
+  return "For your "+z.name+" nature ("+z.el+"), "+(TAROT_EL_LENS[z.el]||"");
+}
+// uniform 0..n-1 from hardware entropy, rejection-sampled to avoid modulo bias
+function fairInt(n){
+  var max=256-(256%n),b=new Uint8Array(1);
+  do{crypto.getRandomValues(b);}while(b[0]>=max);
+  return b[0]%n;
+}
+function fairBit(){var b=new Uint8Array(1);crypto.getRandomValues(b);return b[0]&1;}
+function makeTarotCardEl(d,posIdx){
+  var C=TAROT[d.i];
+  var slot=document.createElement("div");slot.className="tcard-slot";
+  slot.innerHTML='<span class="tcard-pos">'+TAROT_POS[posIdx][0]+'</span>'+
+    '<div class="tcard'+(d.rev?" reversed":"")+'">'+
+      (d.rev?'<span class="tcard-rev-tag">Rᵥ</span>':'')+
+      '<span class="tcard-roman">'+C[2]+'</span>'+
+      '<span class="tcard-glyph">'+C[0]+'</span>'+
+      '<div class="tcard-foot"><div class="tcard-name">'+C[1]+'</div><div class="tcard-corr">'+C[3]+'</div></div>'+
+    '</div>';
+  return slot;
+}
+function renderTarotPlaceholder(){
+  tarotSpread.innerHTML="";
+  for(var p=0;p<3;p++){
+    var slot=document.createElement("div");slot.className="tcard-slot";
+    slot.innerHTML='<span class="tcard-pos">'+TAROT_POS[p][0]+'</span><div class="tcard show" style="opacity:.16;justify-content:center"><span class="tcard-glyph">✦</span></div>';
+    tarotSpread.appendChild(slot);
+  }
+}
+function drawTarot(){
+  if(tarotBusy)return;
+  tarotBusy=true;drawBtn.disabled=true;tarotReading.hidden=true;
+  tarotSpread.innerHTML="";
+  var pool=[];for(var i=0;i<TAROT.length;i++)pool.push(i);
+  var draw=[];
+  for(var p=0;p<3;p++){
+    var idx=fairInt(pool.length),card=pool.splice(idx,1)[0];
+    draw.push({i:card,rev:fairBit()===1});
+  }
+  var k=0;
+  drawStatus.textContent="Drawing "+TAROT_POS[0][0]+" …";
+  function step(){
+    var slot=makeTarotCardEl(draw[k],k);
+    tarotSpread.appendChild(slot);
+    var card=slot.querySelector(".tcard");
+    void card.offsetWidth;card.classList.add("show");
+    cardFlip();if(navigator.vibrate)navigator.vibrate(8);
+    k++;
+    if(k<3){drawStatus.textContent="Drawing "+TAROT_POS[k][0]+" …";setTimeout(step,640);}
+    else{
+      drawStatus.textContent="";
+      setTimeout(function(){
+        revealTarot(draw);
+        tarotBusy=false;drawBtn.disabled=false;drawBtn.textContent="Draw Again";
+      },520);
+    }
+  }
+  setTimeout(step,340);
+}
+function revealTarot(draw){
+  var html='<span class="label">Your Reading</span><div class="tarot-cards-read">';
+  for(var p=0;p<3;p++){
+    var C=TAROT[draw[p].i],rev=draw[p].rev;
+    html+='<div class="tpos"><span class="tpos-label">'+TAROT_POS[p][0]+'</span><div class="tpos-body">'+
+      '<div class="tpos-card">'+C[1]+(rev?' <span class="rev">· Reversed</span>':'')+'</div>'+
+      '<div class="tpos-essence">'+(rev?C[5]:C[4])+'</div></div></div>';
+  }
+  html+='</div>';
+  var sE=draw[0].rev?TAROT[draw[0].i][5]:TAROT[draw[0].i][4];
+  var aE=draw[1].rev?TAROT[draw[1].i][5]:TAROT[draw[1].i][4];
+  var oE=draw[2].rev?TAROT[draw[2].i][5]:TAROT[draw[2].i][4];
+  var advice=sE+" That points to one move — "+lcFirst(aE)+" Follow it, and the likely arc is this: "+lcFirst(oE);
+  var mIdx=(lastMoonInfo||moonInfo(new Date())).idx;
+  advice+=" "+MOON_CUE[mIdx];
+  var bf=tarotBirthFrame();
+  if(bf)advice+=" "+bf;
+  html+='<span class="label">In plain terms</span><p class="hex-advice">'+advice+'</p>';
+  if(!bf)html+='<p class="hex-birth-hint mono">Add your birth date in Your Layer for a personal lens on this draw.</p>';
+  html+='<p class="hex-birth-hint mono">Each card: one hardware-random byte, rejection-sampled to a card with no modulo bias — the same fairness as the flip.</p>';
+  html+='<details class="hex-howto"><summary>How to read this</summary><p>A tarot draw is a mirror for a decision, not a forecast. Read the three cards as one sentence: <b>The Situation</b> is where you actually stand, <b>What to Do</b> is the move the moment favors, and <b>The Outcome</b> is where that move tends to lead. A <b>reversed</b> card turns its meaning — blocked, inward, or shadowed. Hold your real fork in mind; the card that makes you flinch is the one doing the work.</p></details>';
+  tarotReading.innerHTML=html;
+  tarotReading.hidden=false;
+}
+drawBtn.addEventListener("click",drawTarot);
+renderTarotPlaceholder();
 
 // === Flip ===
 function renderProof(byte,isHeads){
